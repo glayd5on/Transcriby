@@ -84,10 +84,30 @@ import { decodeToMono16k } from "./audio.js";
 const $ = id => document.getElementById(id);
 const GO = 'Transcrever', RETRY = 'Tentar de novo';
 let file = null, worker = null, urls = [];
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform));
+// No celular o modelo "Melhor" pode estourar a memória e o navegador fecha a aba sozinho.
+if (isMobile) $('model').value = 'rapido';
+
+// Anota em que etapa a página está. Se o navegador fechar a aba, ao reabrir dá para dizer onde foi.
+const KEY = 'transcriby_etapa';
+let lastEtapa = '';
+const mark = etapa => {
+  if (etapa === lastEtapa) return; lastEtapa = etapa;
+  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: file ? Math.round(file.size / 1048576) : 0, modelo: $('model').value })); } catch (_) {}
+};
+const unmark = () => { lastEtapa = ''; try { localStorage.removeItem(KEY); } catch (_) {} };
+try {
+  const last = JSON.parse(localStorage.getItem(KEY) || 'null');
+  if (last && Date.now() - last.t < 30 * 60 * 1000) {
+    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB, qualidade ${last.modelo}). É falta de memória do celular. Use a qualidade "Rápida" ou envie só o áudio (M4A ou MP3).`;
+    $('msg').classList.add('err');
+  }
+  localStorage.removeItem(KEY);
+} catch (_) {}
 
 const setP = (p, m) => { $('fill').style.width = p + '%'; $('msg').textContent = m; $('msg').classList.remove('err'); };
 // Em caso de erro o arquivo continua escolhido: é só apertar "Tentar de novo".
-const fail = m => { $('msg').textContent = m; $('msg').classList.add('err'); $('go').disabled = false; $('go').textContent = RETRY; };
+const fail = m => { unmark(); $('msg').textContent = m; $('msg').classList.add('err'); $('go').disabled = false; $('go').textContent = RETRY; };
 
 const pick = f => {
   file = f; $('fname').textContent = f.name;
@@ -115,21 +135,21 @@ function show(segments, style, name) {
 $('go').onclick = async () => {
   $('go').disabled = true; $('go').textContent = GO; $('result').style.display = 'none';
   try {
-    setP(1, 'Lendo o áudio do arquivo…');
+    setP(1, 'Lendo o áudio do arquivo…'); mark('lendo o áudio do arquivo');
     const audio = await decodeToMono16k(file, f => setP(1 + Math.round(f * 8), `Lendo o áudio do arquivo… ${Math.round(f * 100)}%`));
     if (worker) worker.terminate();
     worker = new Worker('./worker.js', { type: 'module' });
     const style = $('style').value, name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
     worker.onmessage = ({ data }) => {
-      if (data.type === 'status') setP(data.pct, data.msg);
+      if (data.type === 'status') { setP(data.pct, data.msg); mark(data.msg.replace(/\s*\d+%/g, '').replace(/…+$/, '')); }
       else if (data.type === 'done') {
-        $('go').disabled = false;
+        unmark(); $('go').disabled = false;
         if (!data.segments.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
         setP(100, 'Pronto!'); show(data.segments, style, name);
       } else if (data.type === 'error') fail('Erro ao transcrever: ' + data.msg);
     };
     worker.onerror = () => fail('Não consegui carregar o transcritor. Verifique a internet e tente de novo.');
-    worker.postMessage({ audio, language: $('lang').value, model: $('model').value }, [audio.buffer]);
+    worker.postMessage({ audio, language: $('lang').value, model: $('model').value, mobile: isMobile }, [audio.buffer]);
   } catch (e) {
     fail('Não consegui ler esse arquivo (' + (e.message || e) + '). Seu arquivo continua escolhido: aperte "Tentar de novo" ou escolha outro.');
   }

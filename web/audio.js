@@ -78,7 +78,10 @@ async function decodeStreaming(file, onProgress) {
   return out;
 }
 
+const MAX_WHOLE = 150 * 1024 * 1024;  // acima disso, ler o arquivo inteiro na memória derruba o navegador
+
 async function decodeWhole(file) {
+  if (file.size > MAX_WHOLE) throw new Error("arquivo grande demais (" + Math.round(file.size / 1048576) + " MB) para o método reserva; envie só o áudio");
   const buf = await file.arrayBuffer();
   const AC = window.AudioContext || window.webkitAudioContext;
   let ctx;

@@ -9,8 +9,10 @@ const MODELS = {
   melhor: "Xenova/whisper-small",
 };
 
-async function load(model, post) {
-  const device = self.navigator.gpu ? "webgpu" : "wasm";
+async function load(model, post, mobile) {
+  // No celular a placa de vídeo (WebGPU) com o modelo em precisão cheia estoura a memória e o navegador fecha a aba.
+  // Lá usamos o processador com o modelo compactado (q8), que é mais lento mas bem mais leve.
+  const device = (!mobile && self.navigator.gpu) ? "webgpu" : "wasm";
   const key = model + device;
   if (asr && loadedKey === key) return;
   post({ type: "status", pct: 2, msg: "Baixando o modelo de transcrição (só na primeira vez)…" });
@@ -40,7 +42,7 @@ async function load(model, post) {
 self.onmessage = async ({ data }) => {
   const post = m => self.postMessage(m);
   try {
-    await load(data.model, post);
+    await load(data.model, post, !!data.mobile);
     const duration = data.audio.length / 16000;
     const totalChunks = Math.max(1, Math.ceil(duration / 20));
     let done = 0;
