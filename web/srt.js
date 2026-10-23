@@ -54,14 +54,47 @@ function cues(segments, makeChunks) {
   return out.map(([a, b, c], i) => `${i + 1}\n${ts(a)} --> ${ts(b)}\n${c}\n`).join("\n");
 }
 
+// Quebra em até 2 linhas, equilibrando o tamanho das duas (evita uma palavra sozinha na segunda linha).
+function wrapTwoLines(text) {
+  if (text.length <= MAX_LINE) return [text];
+  const words = text.split(" ");
+  let best = null;
+  for (let i = 1; i < words.length; i++) {
+    const a = words.slice(0, i).join(" "), b = words.slice(i).join(" ");
+    if (a.length > MAX_LINE || b.length > MAX_LINE) continue;
+    const diff = Math.abs(a.length - b.length);
+    if (!best || diff < best.diff) best = { diff, lines: [a, b] };
+  }
+  return best ? best.lines : wrapLines(text, MAX_LINE);
+}
+
+// Divide o trecho em legendas de até 2 linhas e de tamanhos parecidos (sem deixar uma palavra sozinha numa legenda).
+function groupLines(text) {
+  text = text.replace(/\s+/g, " ").trim();
+  if (!text) return [];
+  const k = Math.ceil(wrapLines(text, MAX_LINE).length / 2);
+  if (k <= 1) return [wrapTwoLines(text).join("\n")];
+  const words = text.split(" "), target = text.length / k, parts = [];
+  let cur = [];
+  for (const w of words) {
+    const len = cur.join(" ").length;
+    if (cur.length && parts.length < k - 1 && len + 1 + w.length / 2 > target) { parts.push(cur); cur = []; }
+    cur.push(w);
+  }
+  parts.push(cur);
+  const groups = parts.map(p => wrapTwoLines(p.join(" ")));
+  if (groups.length !== k || groups.some(g => g.length > 2)) {  // plano B: o jeito antigo
+    const lines = wrapLines(text, MAX_LINE), out = [];
+    for (let i = 0; i < lines.length; i += 2) out.push(lines.slice(i, i + 2).join("\n"));
+    return out;
+  }
+  return groups.map(g => g.join("\n"));
+}
+
 /** style: "capcut" (curto, sem pontuação) ou "completo" (com pontuação, 2 linhas) */
 export function toSrt(segments, style) {
   if (style === "capcut") return cues(segments, t => chunkWords(stripPunct(t).split(" ").filter(Boolean), CAPCUT_MAX_CHARS));
-  return cues(segments, t => {
-    const lines = wrapLines(t, MAX_LINE), groups = [];
-    for (let i = 0; i < lines.length; i += 2) groups.push(lines.slice(i, i + 2).join("\n"));
-    return groups;
-  });
+  return cues(segments, groupLines);
 }
 
 export function toTxt(segments, style) {

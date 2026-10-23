@@ -42,7 +42,8 @@ async function load(model, post, mobile) {
 self.onmessage = async ({ data }) => {
   const post = m => self.postMessage(m);
   try {
-    await load(data.model, post, !!data.mobile);
+    const model = data.mobile ? "rapido" : data.model;  // no celular só o modo Rápido (o Melhor fecha a aba do Safari)
+    await load(model, post, !!data.mobile);
     const duration = data.audio.length / 16000;
     const totalChunks = Math.max(1, Math.ceil(duration / 20));
     let done = 0;

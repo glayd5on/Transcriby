@@ -174,7 +174,7 @@
           <option value="spanish">Espanhol</option>
         </select>
       </label>
-      <label class="opt"><span class="k">Qualidade</span>
+      <label class="opt" id="optModel"><span class="k">Qualidade</span>
         <select id="model">
           <option value="melhor" selected>Melhor (mais lento)</option>
           <option value="rapido">Rápida</option>
@@ -187,7 +187,7 @@
         </select>
       </label>
     </div>
-    <p class="hint" id="hint" hidden>No celular, a qualidade Rápida é a mais estável.</p>
+    <p class="hint" id="hint" hidden>No celular a transcrição usa o modo Rápido, o mais estável. O modo Melhor fica para o computador.</p>
 
     <button class="primary" id="go" disabled>Transcrever</button>
 
@@ -216,8 +216,8 @@ let file = null, worker = null, urls = [];
 const label = t => { $('go').textContent = t; };
 const busy = b => document.body.classList.toggle('busy', b);
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform));
-// No celular o modelo "Melhor" pode estourar a memória e o navegador fecha a aba sozinho.
-if (isMobile) { $('model').value = 'rapido'; $('hint').hidden = false; }
+// No celular o modo "Melhor" fechava a aba do Safari sozinho. Lá só existe o modo Rápido; o Melhor fica para o computador.
+if (isMobile) { $('model').value = 'rapido'; $('optModel').hidden = true; $('hint').hidden = false; }
 
 // Anota em que etapa a página está. Se o navegador fechar a aba, ao reabrir dá para dizer onde foi.
 const KEY = 'transcriby_etapa';
@@ -230,7 +230,7 @@ const unmark = () => { lastEtapa = ''; try { localStorage.removeItem(KEY); } cat
 try {
   const last = JSON.parse(localStorage.getItem(KEY) || 'null');
   if (last && Date.now() - last.t < 30 * 60 * 1000) {
-    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB, qualidade ${last.modelo}). É falta de memória do celular. Use a qualidade "Rápida" ou envie só o áudio (M4A ou MP3).`;
+    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB, qualidade ${last.modelo}). Provavelmente faltou memória no navegador. ${isMobile ? "Tente enviar só o áudio (M4A ou MP3)." : 'Tente a qualidade "Rápida" ou envie só o áudio (M4A ou MP3).'}`;
     $('msg').classList.add('err');
   }
   localStorage.removeItem(KEY);
