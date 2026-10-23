@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Transcriby</title>
 <style>
-  :root { --bg:#f6f7fb; --card:#fff; --text:#1d2030; --muted:#6b7085; --accent:#5b4bff; --border:#e2e4ee; }
+  :root { --bg:#f6f7fb; --card:#fff; --text:#1d2030; --muted:#6b7085; --accent:#5b4bff; --border:#e2e4ee; --err:#c62828; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#12131a; --card:#1c1e28; --text:#eceef6; --muted:#9a9fb5; --accent:#8a7dff; --border:#2c2f3d; }
+    :root { --bg:#12131a; --card:#1c1e28; --text:#eceef6; --muted:#9a9fb5; --accent:#8a7dff; --border:#2c2f3d; --err:#ff8a80; }
   }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
@@ -17,7 +17,7 @@
   .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; }
   #drop { border:2px dashed var(--border); border-radius:12px; padding:36px 16px; text-align:center; cursor:pointer; transition:.15s; }
   #drop.over, #drop:hover { border-color:var(--accent); }
-  #drop strong { display:block; margin-bottom:6px; }
+  #drop strong { display:block; margin-bottom:6px; word-break:break-all; }
   #drop span { color:var(--muted); font-size:14px; }
   .row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; align-items:center; }
   label { font-size:14px; color:var(--muted); }
@@ -27,6 +27,7 @@
   .bar { height:8px; background:var(--border); border-radius:6px; overflow:hidden; margin-top:20px; }
   .bar div { height:100%; width:0; background:var(--accent); transition:width .4s; }
   #msg { margin-top:10px; font-size:14px; color:var(--muted); min-height:20px; }
+  #msg.err { color:var(--err); }
   #result { display:none; margin-top:20px; }
   #preview { white-space:pre-wrap; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:14px; max-height:260px; overflow:auto; font-size:14px; line-height:1.55; }
   .dl { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
@@ -67,7 +68,7 @@
       <button class="primary" id="go" disabled>Transcrever</button>
     </div>
     <div class="bar"><div id="fill"></div></div>
-    <div id="msg"></div>
+    <div id="msg" role="status"></div>
     <div id="result">
       <div id="preview"></div>
       <div class="dl">
@@ -79,25 +80,25 @@
 </main>
 <script type="module">
 import { toSrt, toTxt } from "./srt.js";
+import { decodeToMono16k } from "./audio.js";
 const $ = id => document.getElementById(id);
+const GO = 'Transcrever', RETRY = 'Tentar de novo';
 let file = null, worker = null, urls = [];
-const pick = f => { file = f; $('fname').textContent = f.name; $('go').disabled = false; };
+
+const setP = (p, m) => { $('fill').style.width = p + '%'; $('msg').textContent = m; $('msg').classList.remove('err'); };
+// Em caso de erro o arquivo continua escolhido: é só apertar "Tentar de novo".
+const fail = m => { $('msg').textContent = m; $('msg').classList.add('err'); $('go').disabled = false; $('go').textContent = RETRY; };
+
+const pick = f => {
+  file = f; $('fname').textContent = f.name;
+  $('go').disabled = false; $('go').textContent = GO;
+  $('result').style.display = 'none'; setP(0, '');
+};
 $('drop').onclick = () => $('file').click();
 $('file').onchange = e => e.target.files[0] && pick(e.target.files[0]);
 ['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]));
-const setP = (p, m) => { $('fill').style.width = p + '%'; $('msg').textContent = m; };
-
-async function decode(f) {
-  const buf = await f.arrayBuffer();
-  const ctx = new AudioContext({ sampleRate: 16000 });
-  const audio = await ctx.decodeAudioData(buf);
-  const n = audio.numberOfChannels, len = audio.length, mono = new Float32Array(len);
-  for (let c = 0; c < n; c++) { const d = audio.getChannelData(c); for (let i = 0; i < len; i++) mono[i] += d[i] / n; }
-  ctx.close();
-  return mono;
-}
 
 function show(segments, style, name) {
   const srt = toSrt(segments, style), txt = toTxt(segments, style);
@@ -112,10 +113,10 @@ function show(segments, style, name) {
 }
 
 $('go').onclick = async () => {
-  $('go').disabled = true; $('result').style.display = 'none';
+  $('go').disabled = true; $('go').textContent = GO; $('result').style.display = 'none';
   try {
-    setP(1, 'Lendo o arquivo…');
-    const audio = await decode(file);
+    setP(1, 'Lendo o áudio do arquivo…');
+    const audio = await decodeToMono16k(file, f => setP(1 + Math.round(f * 8), `Lendo o áudio do arquivo… ${Math.round(f * 100)}%`));
     if (worker) worker.terminate();
     worker = new Worker('./worker.js', { type: 'module' });
     const style = $('style').value, name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
@@ -125,13 +126,12 @@ $('go').onclick = async () => {
         $('go').disabled = false;
         if (!data.segments.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
         setP(100, 'Pronto!'); show(data.segments, style, name);
-      } else if (data.type === 'error') { setP(0, 'Erro: ' + data.msg); $('go').disabled = false; }
+      } else if (data.type === 'error') fail('Erro ao transcrever: ' + data.msg);
     };
-    worker.onerror = () => { setP(0, 'Não consegui carregar o transcritor. Verifique a internet e tente de novo.'); $('go').disabled = false; };
+    worker.onerror = () => fail('Não consegui carregar o transcritor. Verifique a internet e tente de novo.');
     worker.postMessage({ audio, language: $('lang').value, model: $('model').value }, [audio.buffer]);
   } catch (e) {
-    setP(0, 'Não consegui ler esse arquivo (' + (e.message || e) + '). Tente um arquivo menor ou outro formato.');
-    $('go').disabled = false;
+    fail('Não consegui ler esse arquivo (' + (e.message || e) + '). Seu arquivo continua escolhido: aperte "Tentar de novo" ou escolha outro.');
   }
 };
 </script>

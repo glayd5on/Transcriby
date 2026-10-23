@@ -24,3 +24,4 @@ Para testar no seu computador: `cd web && python3 -m http.server 8000` e abra ht
 - `index.html`: tela
 - `worker.js`: transcrição (carrega o Transformers.js pela internet)
 - `srt.js`: gera o SRT estilo CapCut (curto, sem pontuação) ou completo
+- `audio.js`: lê o áudio do arquivo (aos poucos, sem carregar o vídeo inteiro) e converte para mono 16 kHz
