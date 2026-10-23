@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transcriby</title>
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --text:#1d2030; --muted:#6b7085; --accent:#5b4bff; --border:#e2e4ee; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12131a; --card:#1c1e28; --text:#eceef6; --muted:#9a9fb5; --accent:#8a7dff; --border:#2c2f3d; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:680px; margin:0 auto; padding:40px 16px; }
+  h1 { margin:0 0 4px; font-size:28px; }
+  p.sub { margin:0 0 28px; color:var(--muted); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; }
+  #drop { border:2px dashed var(--border); border-radius:12px; padding:36px 16px; text-align:center; cursor:pointer; transition:.15s; }
+  #drop.over, #drop:hover { border-color:var(--accent); }
+  #drop strong { display:block; margin-bottom:6px; }
+  #drop span { color:var(--muted); font-size:14px; }
+  .row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; align-items:center; }
+  label { font-size:14px; color:var(--muted); }
+  select, button { font:inherit; padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); }
+  button.primary { background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; flex:1; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .bar { height:8px; background:var(--border); border-radius:6px; overflow:hidden; margin-top:20px; }
+  .bar div { height:100%; width:0; background:var(--accent); transition:width .4s; }
+  #msg { margin-top:10px; font-size:14px; color:var(--muted); min-height:20px; }
+  #result { display:none; margin-top:20px; }
+  #preview { white-space:pre-wrap; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:14px; max-height:260px; overflow:auto; font-size:14px; line-height:1.55; }
+  .dl { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
+  .dl a { flex:1; text-align:center; text-decoration:none; padding:12px; border-radius:10px; background:var(--accent); color:#fff; font-weight:600; }
+  .dl a.alt { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Transcriby</h1>
+  <p class="sub">Envie um áudio ou vídeo e receba a legenda em SRT, pronta para levar para uma IA. Grátis: tudo roda no seu navegador e o arquivo não sai do seu computador.</p>
+  <div class="card">
+    <div id="drop">
+      <strong id="fname">Clique ou arraste seu arquivo aqui</strong>
+      <span>MP3, WAV, M4A, OGG, MP4, MOV, WEBM…</span>
+    </div>
+    <input type="file" id="file" accept="audio/*,video/*" hidden>
+    <div class="row">
+      <label for="lang">Idioma</label>
+      <select id="lang">
+        <option value="portuguese" selected>Português</option>
+        <option value="">Detectar automaticamente</option>
+        <option value="english">Inglês</option>
+        <option value="spanish">Espanhol</option>
+      </select>
+      <label for="model">Qualidade</label>
+      <select id="model">
+        <option value="melhor" selected>Melhor (mais lento)</option>
+        <option value="rapido">Rápida</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="style">Estilo</label>
+      <select id="style">
+        <option value="capcut" selected>Estilo CapCut (curto, sem pontuação)</option>
+        <option value="completo">Completo (com pontuação)</option>
+      </select>
+      <button class="primary" id="go" disabled>Transcrever</button>
+    </div>
+    <div class="bar"><div id="fill"></div></div>
+    <div id="msg"></div>
+    <div id="result">
+      <div id="preview"></div>
+      <div class="dl">
+        <a id="dl-srt" href="#">Baixar SRT</a>
+        <a id="dl-txt" class="alt" href="#">Baixar TXT (só o texto)</a>
+      </div>
+    </div>
+  </div>
+</main>
+<script type="module">
+import { toSrt, toTxt } from "./srt.js";
+const $ = id => document.getElementById(id);
+let file = null, worker = null, urls = [];
+const pick = f => { file = f; $('fname').textContent = f.name; $('go').disabled = false; };
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => e.target.files[0] && pick(e.target.files[0]);
+['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
+['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
+$('drop').addEventListener('drop', e => e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]));
+const setP = (p, m) => { $('fill').style.width = p + '%'; $('msg').textContent = m; };
+
+async function decode(f) {
+  const buf = await f.arrayBuffer();
+  const ctx = new AudioContext({ sampleRate: 16000 });
+  const audio = await ctx.decodeAudioData(buf);
+  const n = audio.numberOfChannels, len = audio.length, mono = new Float32Array(len);
+  for (let c = 0; c < n; c++) { const d = audio.getChannelData(c); for (let i = 0; i < len; i++) mono[i] += d[i] / n; }
+  ctx.close();
+  return mono;
+}
+
+function show(segments, style, name) {
+  const srt = toSrt(segments, style), txt = toTxt(segments, style);
+  urls.forEach(URL.revokeObjectURL); urls = [];
+  const link = (id, content, ext) => {
+    const u = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+    urls.push(u); $(id).href = u; $(id).download = name + '.' + ext;
+  };
+  link('dl-srt', srt, 'srt'); link('dl-txt', txt, 'txt');
+  $('preview').textContent = srt.slice(0, 3000);
+  $('result').style.display = 'block';
+}
+
+$('go').onclick = async () => {
+  $('go').disabled = true; $('result').style.display = 'none';
+  try {
+    setP(1, 'Lendo o arquivo…');
+    const audio = await decode(file);
+    if (worker) worker.terminate();
+    worker = new Worker('./worker.js', { type: 'module' });
+    const style = $('style').value, name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
+    worker.onmessage = ({ data }) => {
+      if (data.type === 'status') setP(data.pct, data.msg);
+      else if (data.type === 'done') {
+        $('go').disabled = false;
+        if (!data.segments.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
+        setP(100, 'Pronto!'); show(data.segments, style, name);
+      } else if (data.type === 'error') { setP(0, 'Erro: ' + data.msg); $('go').disabled = false; }
+    };
+    worker.onerror = () => { setP(0, 'Não consegui carregar o transcritor. Verifique a internet e tente de novo.'); $('go').disabled = false; };
+    worker.postMessage({ audio, language: $('lang').value, model: $('model').value }, [audio.buffer]);
+  } catch (e) {
+    setP(0, 'Não consegui ler esse arquivo (' + (e.message || e) + '). Tente um arquivo menor ou outro formato.');
+    $('go').disabled = false;
+  }
+};
+</script>
+</body>
+</html>
