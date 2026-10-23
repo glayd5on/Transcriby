@@ -2,91 +2,222 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F3FC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131129" media="(prefers-color-scheme: dark)">
 <title>Transcriby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#f6f7fb; --card:#fff; --text:#1d2030; --muted:#6b7085; --accent:#5b4bff; --border:#e2e4ee; --err:#c62828; }
+  :root {
+    color-scheme: light dark;
+    --bg:#F5F3FC; --surface:#FFFFFF; --sunken:#EEEAFB; --line:#DDD7F2; --line-strong:#857ACE;
+    --text:#1B1736; --muted:#5E5984;
+    --accent:#5B4BFF; --accent-press:#4A3BE6; --on-accent:#FFFFFF; --accent-text:#4B3DD6;
+    --cue:#F2B705; --focus:#5B4BFF; --err:#B3261E; --err-bg:#FBEAE9;
+    --font-display:"Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
+    --font-ui:"DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#12131a; --card:#1c1e28; --text:#eceef6; --muted:#9a9fb5; --accent:#8a7dff; --border:#2c2f3d; --err:#ff8a80; }
+    :root {
+      --bg:#131129; --surface:#1D1A3A; --sunken:#161430; --line:#332F5E; --line-strong:#7A72C4;
+      --text:#F2F0FF; --muted:#A7A3CC;
+      --accent:#6B5BFF; --accent-press:#5B4BFF; --on-accent:#FFFFFF; --accent-text:#BDB4FF;
+      --cue:#FFD84D; --focus:#FFD84D; --err:#FF9A92; --err-bg:#3A1F2E;
+    }
   }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
-  main { max-width:680px; margin:0 auto; padding:40px 16px; }
-  h1 { margin:0 0 4px; font-size:28px; }
-  p.sub { margin:0 0 28px; color:var(--muted); }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; }
-  #drop { border:2px dashed var(--border); border-radius:12px; padding:36px 16px; text-align:center; cursor:pointer; transition:.15s; }
-  #drop.over, #drop:hover { border-color:var(--accent); }
-  #drop strong { display:block; margin-bottom:6px; word-break:break-all; }
-  #drop span { color:var(--muted); font-size:14px; }
-  .row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; align-items:center; }
-  label { font-size:14px; color:var(--muted); }
-  select, button { font:inherit; padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); }
-  button.primary { background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; flex:1; }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  .bar { height:8px; background:var(--border); border-radius:6px; overflow:hidden; margin-top:20px; }
-  .bar div { height:100%; width:0; background:var(--accent); transition:width .4s; }
-  #msg { margin-top:10px; font-size:14px; color:var(--muted); min-height:20px; }
-  #msg.err { color:var(--err); }
-  #result { display:none; margin-top:20px; }
-  #preview { white-space:pre-wrap; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:14px; max-height:260px; overflow:auto; font-size:14px; line-height:1.55; }
-  .dl { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
-  .dl a { flex:1; text-align:center; text-decoration:none; padding:12px; border-radius:10px; background:var(--accent); color:#fff; font-weight:600; }
-  .dl a.alt { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  [hidden] { display:none !important; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--font-ui); font-size:16px; line-height:1.5;
+    -webkit-tap-highlight-color:transparent;
+  }
+  main {
+    max-width:560px; margin:0 auto;
+    padding:max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  :focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+
+  /* Cabeçalho */
+  .top { display:flex; align-items:center; gap:10px; margin:8px 0 28px; }
+  .mark { width:32px; height:32px; flex:none; }
+  .word { font-family:var(--font-display); font-weight:800; font-size:20px; letter-spacing:-0.01em; }
+  h1 { font-family:var(--font-display); font-weight:800; font-size:clamp(34px, 10vw, 46px); line-height:1.02; letter-spacing:-0.03em; margin:0 0 12px; text-wrap:balance; }
+  .sub { margin:0 0 28px; color:var(--muted); max-width:46ch; text-wrap:pretty; }
+
+  /* Painel principal */
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:12px; }
+
+  /* Escolha do arquivo */
+  #drop {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center;
+    min-height:176px; padding:24px 16px; border:2px dashed var(--line-strong); border-radius:16px;
+    background:var(--sunken); cursor:pointer; transition:border-color .15s, background-color .15s;
+  }
+  #drop:hover, #drop.over { border-color:var(--accent); }
+  #drop .plus { width:48px; height:48px; border-radius:50%; background:var(--accent); color:var(--on-accent); display:grid; place-items:center; margin-bottom:8px; }
+  #drop .title { font-weight:600; font-size:18px; }
+  #drop .how, #drop .fmt { color:var(--muted); font-size:14px; }
+  #drop .mouse { display:none; }
+  @media (hover:hover) and (pointer:fine) { #drop .touch { display:none; } #drop .mouse { display:inline; } }
+  #drop .empty { display:contents; }
+  #drop .chosen { display:none; }
+  #drop.has-file { flex-direction:row; align-items:center; justify-content:flex-start; gap:12px; text-align:left; min-height:0; padding:14px; border-style:solid; border-color:var(--line); background:var(--sunken); }
+  #drop.has-file .empty { display:none; }
+  #drop.has-file .chosen { display:contents; }
+  .ficon { width:44px; height:44px; border-radius:12px; background:var(--surface); border:1px solid var(--line); display:grid; place-items:center; flex:none; color:var(--accent-text); }
+  .fbody { min-width:0; flex:1; }
+  #fname { display:block; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #fmeta { display:block; font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .swap { flex:none; font-weight:600; font-size:15px; color:var(--accent-text); padding:8px 4px; }
+
+  /* Opções (lista com linhas) */
+  .opts { margin-top:12px; border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .opt { position:relative; display:block; height:64px; }
+  .opt + .opt { border-top:1px solid var(--line); }
+  .opt .k { position:absolute; left:16px; top:10px; font-size:13px; color:var(--muted); pointer-events:none; }
+  .opt select {
+    position:absolute; inset:0; width:100%; height:100%; margin:0;
+    padding:24px 44px 0 16px; border:0; border-radius:0; background:transparent; color:var(--text);
+    font:inherit; font-size:17px; -webkit-appearance:none; appearance:none; cursor:pointer;
+  }
+  .opt::after { content:""; position:absolute; right:20px; top:50%; width:8px; height:8px; margin-top:-6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); pointer-events:none; }
+  .opt select:focus-visible { outline-offset:-3px; }
+  .hint { margin:10px 4px 0; font-size:14px; color:var(--muted); }
+
+  /* Botões */
+  .btn, button.primary {
+    display:flex; align-items:center; justify-content:center; width:100%; min-height:56px; padding:0 20px;
+    border:0; border-radius:16px; font:inherit; font-size:17px; font-weight:600; text-decoration:none; cursor:pointer; touch-action:manipulation;
+  }
+  button.primary { margin-top:12px; background:var(--accent); color:var(--on-accent); }
+  button.primary:hover { background:var(--accent-press); }
+  button.primary:disabled { background:var(--sunken); color:var(--muted); cursor:not-allowed; }
+
+  /* Progresso: régua com cursor de reprodução */
+  .status { padding:0 4px; }
+  .track { display:none; position:relative; height:14px; margin:24px 0 8px; border-radius:7px; background:var(--sunken); border:1px solid var(--line); }
+  .fill { position:relative; height:100%; width:0; background:var(--accent); border-radius:6px; transition:width .4s; }
+  .fill::after { content:""; position:absolute; right:-2px; top:-7px; width:4px; height:26px; border-radius:2px; background:var(--cue); box-shadow:0 0 0 2px var(--surface); }
+  .keep { display:none; margin:6px 0 4px; font-size:14px; color:var(--muted); }
+  .busy .track, .busy .keep { display:block; }
+  #msg { margin:12px 0 4px; font-size:15px; color:var(--text); }
+  #msg:empty { display:none; }
+  #msg.err { color:var(--err); background:var(--err-bg); border-radius:12px; padding:12px 14px; }
+  .busy #msg { margin-top:0; }
+
+  /* Resultado */
+  .result { margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:20px 12px 12px; scroll-margin-top:16px; }
+  .rhead { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:0 8px 12px; }
+  .rhead h2 { margin:0; font-family:var(--font-display); font-weight:800; font-size:24px; letter-spacing:-0.02em; }
+  #count { color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums; }
+  .cues { list-style:none; margin:0; padding:4px 0; max-height:min(46vh, 340px); overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:16px; -webkit-overflow-scrolling:touch; }
+  .cues li { display:grid; grid-template-columns:52px 1fr; gap:12px; padding:10px 14px; }
+  .cues li + li { border-top:1px solid var(--line); }
+  .cues time { color:var(--accent-text); font-weight:600; font-size:14px; font-variant-numeric:tabular-nums; padding-top:2px; }
+  .cues .t { overflow-wrap:anywhere; }
+  .cues .more { display:block; padding:10px 14px; color:var(--muted); font-size:14px; }
+  .dl { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .btn.save { background:var(--accent); color:var(--on-accent); }
+  .btn.save:hover { background:var(--accent-press); }
+  .btn.alt { background:transparent; color:var(--accent-text); border:1.5px solid var(--line-strong); }
+  .btn.alt:hover { border-color:var(--accent); }
+  @media (min-width:520px) { .dl { flex-direction:row; } .dl .btn { flex:1; } }
+
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; scroll-behavior:auto !important; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>Transcriby</h1>
-  <p class="sub">Envie um áudio ou vídeo e receba a legenda em SRT, pronta para levar para uma IA. Grátis: tudo roda no seu navegador e o arquivo não sai do seu computador.</p>
-  <div class="card">
-    <div id="drop">
-      <strong id="fname">Clique ou arraste seu arquivo aqui</strong>
-      <span>MP3, WAV, M4A, OGG, MP4, MOV, WEBM…</span>
-    </div>
-    <input type="file" id="file" accept="audio/*,video/*" hidden>
-    <div class="row">
-      <label for="lang">Idioma</label>
-      <select id="lang">
-        <option value="portuguese" selected>Português</option>
-        <option value="">Detectar automaticamente</option>
-        <option value="english">Inglês</option>
-        <option value="spanish">Espanhol</option>
-      </select>
-      <label for="model">Qualidade</label>
-      <select id="model">
-        <option value="melhor" selected>Melhor (mais lento)</option>
-        <option value="rapido">Rápida</option>
-      </select>
-    </div>
-    <div class="row">
-      <label for="style">Estilo</label>
-      <select id="style">
-        <option value="capcut" selected>Estilo CapCut (curto, sem pontuação)</option>
-        <option value="completo">Completo (com pontuação)</option>
-      </select>
-      <button class="primary" id="go" disabled>Transcrever</button>
-    </div>
-    <div class="bar"><div id="fill"></div></div>
-    <div id="msg" role="status"></div>
-    <div id="result">
-      <div id="preview"></div>
-      <div class="dl">
-        <a id="dl-srt" href="#">Baixar SRT</a>
-        <a id="dl-txt" class="alt" href="#">Baixar TXT (só o texto)</a>
+  <header class="top">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="var(--accent)"/>
+      <rect x="7" y="17" width="18" height="3.5" rx="1.75" fill="#fff"/>
+      <rect x="7" y="23" width="11" height="3.5" rx="1.75" fill="#fff"/>
+      <rect x="21" y="6" width="3.5" height="11" rx="1.75" fill="var(--cue)"/>
+    </svg>
+    <span class="word">Transcriby</span>
+  </header>
+
+  <h1>Do vídeo para a legenda</h1>
+  <p class="sub">Envie um áudio ou vídeo e receba a legenda em SRT, pronta para levar para uma IA. Grátis: tudo roda no seu navegador e o arquivo não sai do seu aparelho.</p>
+
+  <div class="panel">
+    <div id="drop" role="button" tabindex="0" aria-label="Escolher arquivo de áudio ou vídeo">
+      <div class="empty">
+        <span class="plus" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+        <span class="title">Escolher áudio ou vídeo</span>
+        <span class="how"><span class="touch">Toque para abrir seus arquivos</span><span class="mouse">ou arraste para cá</span></span>
+        <span class="fmt">MP3, WAV, M4A, OGG, MP4, MOV, WEBM</span>
+      </div>
+      <div class="chosen">
+        <span class="ficon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 14h6M7 10.5h10"/></svg>
+        </span>
+        <span class="fbody"><strong id="fname"></strong><span id="fmeta"></span></span>
+        <span class="swap">Trocar</span>
       </div>
     </div>
+    <input type="file" id="file" accept="audio/*,video/*" hidden>
+
+    <div class="opts">
+      <label class="opt"><span class="k">Idioma</span>
+        <select id="lang">
+          <option value="portuguese" selected>Português</option>
+          <option value="">Detectar automaticamente</option>
+          <option value="english">Inglês</option>
+          <option value="spanish">Espanhol</option>
+        </select>
+      </label>
+      <label class="opt"><span class="k">Qualidade</span>
+        <select id="model">
+          <option value="melhor" selected>Melhor (mais lento)</option>
+          <option value="rapido">Rápida</option>
+        </select>
+      </label>
+      <label class="opt"><span class="k">Estilo da legenda</span>
+        <select id="style">
+          <option value="capcut" selected>CapCut (curto, sem pontuação)</option>
+          <option value="completo">Completo (com pontuação)</option>
+        </select>
+      </label>
+    </div>
+    <p class="hint" id="hint" hidden>No celular, a qualidade Rápida é a mais estável.</p>
+
+    <button class="primary" id="go" disabled>Transcrever</button>
+
+    <div class="status" id="status">
+      <div class="track" id="track" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill"></div></div>
+      <div id="msg" role="status"></div>
+      <p class="keep">Mantenha esta tela aberta até terminar.</p>
+    </div>
   </div>
+
+  <section class="result" id="result" hidden aria-labelledby="rt">
+    <div class="rhead"><h2 id="rt">Legenda pronta</h2><span id="count"></span></div>
+    <ol class="cues" id="preview"></ol>
+    <div class="dl">
+      <a id="dl-srt" class="btn save" href="#">Baixar SRT</a>
+      <a id="dl-txt" class="btn alt" href="#">Baixar TXT (só o texto)</a>
+    </div>
+  </section>
 </main>
 <script type="module">
 import { toSrt, toTxt } from "./srt.js";
 import { decodeToMono16k } from "./audio.js";
 const $ = id => document.getElementById(id);
-const GO = 'Transcrever', RETRY = 'Tentar de novo';
+const GO = 'Transcrever', RETRY = 'Tentar de novo', WORK = 'Transcrevendo…';
 let file = null, worker = null, urls = [];
+const label = t => { $('go').textContent = t; };
+const busy = b => document.body.classList.toggle('busy', b);
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform));
 // No celular o modelo "Melhor" pode estourar a memória e o navegador fecha a aba sozinho.
-if (isMobile) $('model').value = 'rapido';
+if (isMobile) { $('model').value = 'rapido'; $('hint').hidden = false; }
 
 // Anota em que etapa a página está. Se o navegador fechar a aba, ao reabrir dá para dizer onde foi.
 const KEY = 'transcriby_etapa';
@@ -105,20 +236,49 @@ try {
   localStorage.removeItem(KEY);
 } catch (_) {}
 
-const setP = (p, m) => { $('fill').style.width = p + '%'; $('msg').textContent = m; $('msg').classList.remove('err'); };
+const setP = (p, m) => {
+  $('fill').style.width = p + '%'; $('track').setAttribute('aria-valuenow', Math.round(p));
+  $('msg').textContent = m; $('msg').classList.remove('err');
+};
 // Em caso de erro o arquivo continua escolhido: é só apertar "Tentar de novo".
-const fail = m => { unmark(); $('msg').textContent = m; $('msg').classList.add('err'); $('go').disabled = false; $('go').textContent = RETRY; };
+const fail = m => { unmark(); busy(false); $('msg').textContent = m; $('msg').classList.add('err'); $('go').disabled = false; label(RETRY); };
 
+const fmtSize = b => b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : b >= 1048576 ? Math.round(b / 1048576) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 const pick = f => {
-  file = f; $('fname').textContent = f.name;
-  $('go').disabled = false; $('go').textContent = GO;
-  $('result').style.display = 'none'; setP(0, '');
+  file = f; $('fname').textContent = f.name; $('fmeta').textContent = fmtSize(f.size);
+  $('drop').classList.add('has-file');
+  $('go').disabled = false; label(GO);
+  $('result').hidden = true; busy(false); setP(0, '');
 };
 $('drop').onclick = () => $('file').click();
+$('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
 $('file').onchange = e => e.target.files[0] && pick(e.target.files[0]);
 ['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]));
+
+// Lê o SRT pronto e mostra cada legenda com o tempo de início na frente (só para a prévia).
+const MAX_CUES = 40;
+function previewCues(srt) {
+  const list = srt.trim().split(/\n\s*\n/).map(block => {
+    const lines = block.split('\n');
+    const m = (lines[1] || '').match(/^(\d+):(\d\d):(\d\d)/);
+    if (!m) return null;
+    const t = (+m[1] ? m[1] + ':' + m[2] : String(+m[2])) + ':' + m[3];
+    return { t, text: lines.slice(2).join(' ') };
+  }).filter(Boolean);
+  const ol = $('preview'); ol.textContent = '';
+  for (const c of list.slice(0, MAX_CUES)) {
+    const li = document.createElement('li'), time = document.createElement('time'), tx = document.createElement('span');
+    time.textContent = c.t; tx.className = 't'; tx.textContent = c.text;
+    li.append(time, tx); ol.append(li);
+  }
+  if (list.length > MAX_CUES) {
+    const li = document.createElement('li'); li.className = 'more';
+    li.textContent = `+ ${list.length - MAX_CUES} legendas no arquivo`; ol.append(li);
+  }
+  $('count').textContent = list.length === 1 ? '1 legenda' : `${list.length} legendas`;
+}
 
 function show(segments, style, name) {
   const srt = toSrt(segments, style), txt = toTxt(segments, style);
@@ -128,12 +288,13 @@ function show(segments, style, name) {
     urls.push(u); $(id).href = u; $(id).download = name + '.' + ext;
   };
   link('dl-srt', srt, 'srt'); link('dl-txt', txt, 'txt');
-  $('preview').textContent = srt.slice(0, 3000);
-  $('result').style.display = 'block';
+  previewCues(srt);
+  $('result').hidden = false;
+  $('result').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 
 $('go').onclick = async () => {
-  $('go').disabled = true; $('go').textContent = GO; $('result').style.display = 'none';
+  $('go').disabled = true; label(WORK); $('result').hidden = true; busy(true);
   try {
     setP(1, 'Lendo o áudio do arquivo…'); mark('lendo o áudio do arquivo');
     const audio = await decodeToMono16k(file, f => setP(1 + Math.round(f * 8), `Lendo o áudio do arquivo… ${Math.round(f * 100)}%`));
@@ -143,9 +304,9 @@ $('go').onclick = async () => {
     worker.onmessage = ({ data }) => {
       if (data.type === 'status') { setP(data.pct, data.msg); mark(data.msg.replace(/\s*\d+%/g, '').replace(/…+$/, '')); }
       else if (data.type === 'done') {
-        unmark(); $('go').disabled = false;
+        unmark(); busy(false); $('go').disabled = false; label(GO);
         if (!data.segments.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
-        setP(100, 'Pronto!'); show(data.segments, style, name);
+        setP(100, ''); show(data.segments, style, name);
       } else if (data.type === 'error') fail('Erro ao transcrever: ' + data.msg);
     };
     worker.onerror = () => fail('Não consegui carregar o transcritor. Verifique a internet e tente de novo.');
