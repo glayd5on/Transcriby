@@ -2,3 +2,5 @@
 name = "transcriby-gemini"
 main = "cloudflare/worker.js"
 compatibility_date = "2025-01-01"
+# Mantém as variáveis criadas no painel da Cloudflare (senha, chaves) quando o código é publicado de novo.
+keep_vars = true
