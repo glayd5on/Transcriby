@@ -1,5 +1,6 @@
 // Roda o Whisper dentro do navegador (Web Worker) usando Transformers.js
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.0";
+import { cleanSegments } from "./srt.js";
 
 env.allowLocalModels = false;
 let asr = null, loadedKey = null;
@@ -19,7 +20,8 @@ async function load(model, post, mobile) {
   const files = {};
   const opts = {
     device,
-    dtype: device === "webgpu" ? { encoder_model: "fp32", decoder_model_merged: "q8" } : "q8",
+    // Encoder em precisão cheia (o compactado q8 piora muito o reconhecimento e gera texto sem sentido); só o decoder é compactado.
+    dtype: { encoder_model: "fp32", decoder_model_merged: "q8" },
     progress_callback: p => {
       if (p.status === "progress" && p.file) {
         files[p.file] = p.progress;
@@ -33,7 +35,7 @@ async function load(model, post, mobile) {
     asr = await pipeline("automatic-speech-recognition", MODELS[model], opts);
   } catch (e) {
     if (device === "webgpu") {  // se a placa de vídeo falhar, cai para o processador
-      asr = await pipeline("automatic-speech-recognition", MODELS[model], { ...opts, device: "wasm", dtype: "q8" });
+      asr = await pipeline("automatic-speech-recognition", MODELS[model], { ...opts, device: "wasm" });
     } else throw e;
   }
   loadedKey = key;
@@ -60,13 +62,14 @@ self.onmessage = async ({ data }) => {
         post({ type: "status", pct, msg: `Transcrevendo… ${Math.min(100, Math.round(100 * done / totalChunks))}%` });
       },
     });
-    const segments = (out.chunks || []).map(c => ({
+    let segments = (out.chunks || []).map(c => ({
       start: c.timestamp[0] ?? 0,
       end: c.timestamp[1] ?? duration,
       text: c.text,
     })).filter(s => s.text.trim());
     if (!segments.length && out.text) segments.push({ start: 0, end: duration, text: out.text });
-    post({ type: "done", segments });
+    const cleaned = cleanSegments(segments, data.language);
+    post({ type: "done", segments: cleaned.segments, removed: cleaned.removed });
   } catch (e) {
     post({ type: "error", msg: String(e && e.message || e) });
   }

@@ -110,3 +110,22 @@ export function toTxt(segments, style) {
   if (cur.trim()) paras.push(cur.trim());
   return paras.join("\n\n") + "\n";
 }
+
+// Limpa o "lixo" típico do Whisper: letras de outros alfabetos (coreano, chinês, russo…), frases repetidas em loop
+// e palavras repetidas dezenas de vezes. Só mexe nos alfabetos quando o idioma foi escolhido (não é "detectar").
+const FOREIGN = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Thai}\p{Script=Hebrew}\p{Script=Devanagari}]/gu;
+
+export function cleanSegments(segments, language) {
+  const out = []; let lastKey = "", run = 0, removed = 0;
+  for (const seg of segments) {
+    let t = seg.text;
+    if (language) t = t.replace(FOREIGN, " ");
+    t = t.replace(/\b([\p{L}\d]+)(?:[\s,.!?]+\1\b){3,}/giu, "$1");   // "sim sim sim sim sim" -> "sim"
+    t = t.replace(/\s+/g, " ").trim();
+    const key = stripPunct(t).toLowerCase();
+    if (key.replace(/[^\p{L}\d]/gu, "").length < 2) { removed++; continue; }
+    if (key === lastKey) { run++; if (run >= 1) { removed++; continue; } } else { run = 0; lastKey = key; }
+    out.push({ ...seg, text: " " + t });
+  }
+  return { segments: out, removed };
+}
