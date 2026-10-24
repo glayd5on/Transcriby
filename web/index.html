@@ -282,6 +282,11 @@ $('copy').onclick = async () => {
 if (GEMINI_URL) $('optEngine').hidden = false;
 const useGemini = () => !!GEMINI_URL && $('engine').value === 'gemini';
 const KEYSTORE = 'transcriby_codigo';
+// Link para a equipe: ...?codigo=SENHA grava o código neste aparelho e some da barra de endereço (ninguém precisa digitar).
+try {
+  const q = new URLSearchParams(location.search), c = (q.get('codigo') || '').trim();
+  if (c) { localStorage.setItem(KEYSTORE, c); q.delete('codigo'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
+} catch (_) {}
 const getKey = () => { try { return localStorage.getItem(KEYSTORE) || ''; } catch (_) { return ''; } };
 const askKey = () => { const k = (prompt('Digite o código de acesso do site:') || '').trim(); try { localStorage.setItem(KEYSTORE, k); } catch (_) {} return k; };
 
