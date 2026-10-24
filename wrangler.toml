@@ -1,0 +1,4 @@
+# Usado pela Cloudflare ao puxar este repositório: publica o Worker do Gemini (cloudflare/worker.js).
+name = "transcriby-gemini"
+main = "cloudflare/worker.js"
+compatibility_date = "2025-01-01"
