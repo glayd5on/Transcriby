@@ -20,9 +20,21 @@ da Cloudflare (100 mil pedidos por dia) sobra.
 
 Pronto: o site passa a mostrar "Como transcrever: Gemini (mais preciso)".
 
+## Usando a chave da Vertex (arquivo .json da conta de serviço)
+
+No passo 1 não precisa da chave do AI Studio. No passo 4, em vez de `GEMINI_API_KEY`, crie:
+
+- `GOOGLE_SERVICE_ACCOUNT` (tipo **Secret**): abra o arquivo `.json` da Vertex no seu computador (ele abre no Bloco de Notas
+  ou no TextEdit), selecione **tudo**, copie e cole no campo do valor. Não cole o conteúdo em nenhum chat.
+- `VERTEX_LOCATION` (tipo Text, opcional): a região, por exemplo `us-central1` (padrão) ou `southamerica-east1`.
+  O modelo precisa estar disponível nessa região; se der erro de modelo, tente `global`.
+
+Os outros itens (`ACCESS_KEY` e `ALLOWED_ORIGIN`) são os mesmos. Requisitos no Google Cloud: a API **Vertex AI** ativada no
+projeto e a conta de serviço com o papel **Vertex AI User**. A transcrição passa a ser cobrada na conta do projeto
+(ou nos créditos dela).
+
 ## Observações
 
 - A chave do AI Studio tem cota grátis com limite por minuto e por dia. Para vídeos de 10 minutos de uso pessoal costuma bastar.
-- Com a Vertex AI (conta Google Cloud) a transcrição é cobrada na sua conta. Dá para trocar depois; é uma mudança só no Worker.
 - Modelo padrão: `gemini-2.5-flash`. Para outro, crie a variável `GEMINI_MODEL`.
 - O áudio vai para o Google quando você usa o Gemini. Para não enviar nada, escolha "No navegador".
