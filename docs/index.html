@@ -114,6 +114,8 @@
   .rhead { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:0 8px 12px; }
   .rhead h2 { margin:0; font-family:var(--font-display); font-weight:800; font-size:24px; letter-spacing:-0.02em; }
   #count { color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums; }
+  #out { display:block; width:100%; height:min(46vh, 340px); resize:vertical; padding:14px; font:inherit; font-size:16px; line-height:1.55; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:16px; }
+  button.btn { border:0; }
   .cues { list-style:none; margin:0; padding:4px 0; max-height:min(46vh, 340px); overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:16px; -webkit-overflow-scrolling:touch; }
   .cues li { display:grid; grid-template-columns:52px 1fr; gap:12px; padding:10px 14px; }
   .cues li + li { border-top:1px solid var(--line); }
@@ -142,8 +144,8 @@
     <span class="word">Transcriby</span>
   </header>
 
-  <h1>Do vídeo para a legenda</h1>
-  <p class="sub">Envie um áudio ou vídeo e receba a legenda em SRT, pronta para levar para uma IA. Grátis: tudo roda no seu navegador e o arquivo não sai do seu aparelho.</p>
+  <h1>Do vídeo para o texto</h1>
+  <p class="sub">Envie um áudio ou vídeo e receba o texto completo, pronto para copiar e colar numa IA para pesquisar ou achar o que você precisa.</p>
 
   <div class="panel">
     <div id="drop" role="button" tabindex="0" aria-label="Escolher arquivo de áudio ou vídeo">
@@ -180,10 +182,10 @@
           <option value="rapido">Rápida</option>
         </select>
       </label>
-      <label class="opt"><span class="k">Estilo da legenda</span>
-        <select id="style">
-          <option value="capcut" selected>CapCut (curto, sem pontuação)</option>
-          <option value="completo">Completo (com pontuação)</option>
+      <label class="opt" id="optEngine" hidden><span class="k">Como transcrever</span>
+        <select id="engine">
+          <option value="gemini" selected>Gemini (mais preciso)</option>
+          <option value="whisper">No navegador (grátis, sem enviar o arquivo)</option>
         </select>
       </label>
     </div>
@@ -199,16 +201,18 @@
   </div>
 
   <section class="result" id="result" hidden aria-labelledby="rt">
-    <div class="rhead"><h2 id="rt">Legenda pronta</h2><span id="count"></span></div>
-    <ol class="cues" id="preview"></ol>
+    <div class="rhead"><h2 id="rt">Texto pronto</h2><span id="count"></span></div>
+    <textarea id="out" readonly aria-label="Texto transcrito"></textarea>
     <div class="dl">
-      <a id="dl-srt" class="btn save" href="#">Baixar SRT</a>
-      <a id="dl-txt" class="btn alt" href="#">Baixar TXT (só o texto)</a>
+      <button type="button" id="copy" class="btn save">Copiar texto</button>
+      <a id="dl-txt" class="btn alt" href="#">Baixar TXT</a>
     </div>
   </section>
 </main>
 <script type="module">
-import { toSrt, toTxt } from "./srt.js";
+import { toTxt } from "./srt.js";
+import { transcribeWithGemini, NeedKey } from "./gemini.js";
+import { GEMINI_URL } from "./config.js";
 import { decodeToMono16k } from "./audio.js";
 const $ = id => document.getElementById(id);
 const GO = 'Transcrever', RETRY = 'Tentar de novo', WORK = 'Transcrevendo…';
@@ -224,7 +228,7 @@ const KEY = 'transcriby_etapa';
 let lastEtapa = '';
 const mark = etapa => {
   if (etapa === lastEtapa) return; lastEtapa = etapa;
-  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: file ? Math.round(file.size / 1048576) : 0, modelo: $('model').value })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: file ? Math.round(file.size / 1048576) : 0, modelo: useGemini() ? 'Gemini' : $('model').value })); } catch (_) {}
 };
 const unmark = () => { lastEtapa = ''; try { localStorage.removeItem(KEY); } catch (_) {} };
 try {
@@ -257,40 +261,45 @@ $('file').onchange = e => e.target.files[0] && pick(e.target.files[0]);
 ['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]));
 
-// Lê o SRT pronto e mostra cada legenda com o tempo de início na frente (só para a prévia).
-const MAX_CUES = 40;
-function previewCues(srt) {
-  const list = srt.trim().split(/\n\s*\n/).map(block => {
-    const lines = block.split('\n');
-    const m = (lines[1] || '').match(/^(\d+):(\d\d):(\d\d)/);
-    if (!m) return null;
-    const t = (+m[1] ? m[1] + ':' + m[2] : String(+m[2])) + ':' + m[3];
-    return { t, text: lines.slice(2).join(' ') };
-  }).filter(Boolean);
-  const ol = $('preview'); ol.textContent = '';
-  for (const c of list.slice(0, MAX_CUES)) {
-    const li = document.createElement('li'), time = document.createElement('time'), tx = document.createElement('span');
-    time.textContent = c.t; tx.className = 't'; tx.textContent = c.text;
-    li.append(time, tx); ol.append(li);
-  }
-  if (list.length > MAX_CUES) {
-    const li = document.createElement('li'); li.className = 'more';
-    li.textContent = `+ ${list.length - MAX_CUES} legendas no arquivo`; ol.append(li);
-  }
-  $('count').textContent = list.length === 1 ? '1 legenda' : `${list.length} legendas`;
-}
-
-function show(segments, style, name) {
-  const srt = toSrt(segments, style), txt = toTxt(segments, style);
+function show(text, name) {
   urls.forEach(URL.revokeObjectURL); urls = [];
-  const link = (id, content, ext) => {
-    const u = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
-    urls.push(u); $(id).href = u; $(id).download = name + '.' + ext;
-  };
-  link('dl-srt', srt, 'srt'); link('dl-txt', txt, 'txt');
-  previewCues(srt);
+  const u = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  urls.push(u); $('dl-txt').href = u; $('dl-txt').download = name + '.txt';
+  $('out').value = text;
+  const words = (text.match(/\S+/g) || []).length;
+  $('count').textContent = words.toLocaleString('pt-BR') + (words === 1 ? ' palavra' : ' palavras');
+  $('copy').textContent = 'Copiar texto';
   $('result').hidden = false;
   $('result').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+}
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('out').value); }
+  catch (_) { $('out').select(); document.execCommand('copy'); }
+  $('copy').textContent = 'Copiado!'; setTimeout(() => { $('copy').textContent = 'Copiar texto'; }, 2000);
+};
+
+// Com o endereço do servidor configurado, o Gemini vira o padrão; sem ele só existe o Whisper no navegador.
+if (GEMINI_URL) $('optEngine').hidden = false;
+const useGemini = () => !!GEMINI_URL && $('engine').value === 'gemini';
+const KEYSTORE = 'transcriby_codigo';
+const getKey = () => { try { return localStorage.getItem(KEYSTORE) || ''; } catch (_) { return ''; } };
+const askKey = () => { const k = (prompt('Digite o código de acesso do site:') || '').trim(); try { localStorage.setItem(KEYSTORE, k); } catch (_) {} return k; };
+
+async function runGemini(audio, name) {
+  const language = $('lang').value;
+  const onProgress = (i, n) => { setP(10 + Math.round(85 * i / n), n === 1 ? 'Transcrevendo com o Gemini…' : `Transcrevendo com o Gemini… parte ${Math.min(i + 1, n)} de ${n}`); mark('transcrevendo com o Gemini'); };
+  let key = getKey();
+  for (let tries = 0; ; tries++) {
+    try {
+      const text = await transcribeWithGemini(audio, { url: GEMINI_URL, language, key, onProgress });
+      unmark(); busy(false); $('go').disabled = false; label(GO);
+      if (!text.trim()) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
+      setP(100, ''); return show(text, name);
+    } catch (e) {
+      if (e instanceof NeedKey && tries < 2) { key = askKey(); if (!key) return fail('Precisa do código de acesso para usar o Gemini.'); continue; }
+      return fail('Erro ao transcrever: ' + (e.message || e) + '. Se continuar, troque "Como transcrever" para "No navegador".');
+    }
+  }
 }
 
 $('go').onclick = async () => {
@@ -298,15 +307,16 @@ $('go').onclick = async () => {
   try {
     setP(1, 'Lendo o áudio do arquivo…'); mark('lendo o áudio do arquivo');
     const audio = await decodeToMono16k(file, f => setP(1 + Math.round(f * 8), `Lendo o áudio do arquivo… ${Math.round(f * 100)}%`));
+    const name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
+    if (useGemini()) return runGemini(audio, name);
     if (worker) worker.terminate();
     worker = new Worker('./worker.js', { type: 'module' });
-    const style = $('style').value, name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
     worker.onmessage = ({ data }) => {
       if (data.type === 'status') { setP(data.pct, data.msg); mark(data.msg.replace(/\s*\d+%/g, '').replace(/…+$/, '')); }
       else if (data.type === 'done') {
         unmark(); busy(false); $('go').disabled = false; label(GO);
         if (!data.segments.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
-        setP(100, ''); show(data.segments, style, name);
+        setP(100, ''); show(toTxt(data.segments, 'completo'), name);
       } else if (data.type === 'error') fail('Erro ao transcrever: ' + data.msg);
     };
     worker.onerror = () => fail('Não consegui carregar o transcritor. Verifique a internet e tente de novo.');
