@@ -95,7 +95,9 @@ export async function transcribeWithGemini(audio, { url, language, key, onProgre
     onProgress(i, parts.length);
     const [a, b] = parts[i];
     const j = await post(`${url}?lang=${encodeURIComponent(language || "")}`, toWav(audio.subarray(a, b)), { "Content-Type": "audio/wav" }, key);
-    const segs = placeSegments(j.segments || [], a / RATE, (b - a) / RATE);
+    // Worker antigo (ainda sem trechos) devolve só {text}: vira um trecho único, sem tempo.
+    const raw = j.segments || (j.text ? [{ start: "00:00", text: j.text, paragraph: true }] : []);
+    const segs = placeSegments(raw, a / RATE, (b - a) / RATE);
     if (segs.length) segs[0].paragraph = true;   // cada parte começa um parágrafo (o corte é feito num silêncio)
     all.push(...segs);
   }
