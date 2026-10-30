@@ -1,6 +1,6 @@
 # Transcriby
 
-> **Site grátis (pasta `web/` e `docs/`):** devolve só o texto completo, para copiar e usar numa IA. Transcreve com o Gemini via um Cloudflare Worker grátis (`cloudflare/LEIA-ME.md`) ou com o Whisper no navegador.
+> **Site grátis (pasta `web/` e `docs/`):** envia o áudio ou vídeo e devolve o texto completo, organizado em parágrafos, para copiar e usar numa IA. Também baixa o SRT com tempo e gera resumo. A transcrição é feita pelo modelo Reo (Beta), via um Cloudflare Worker (`cloudflare/LEIA-ME.md`).
 
 > **Quer 100% grátis na web?** Use a pasta `web/` (roda no navegador, sem servidor e sem API). Veja `web/LEIA-ME.md`.
 > O restante deste README é da versão com servidor (pasta `app/`).

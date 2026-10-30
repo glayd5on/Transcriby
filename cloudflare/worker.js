@@ -4,15 +4,43 @@
 //              + VERTEX_LOCATION (opcional, padrão us-central1)
 //   AI STUDIO: GEMINI_API_KEY (secreta)
 // Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (ex.: https://glayd5on.github.io), GEMINI_MODEL (opcional).
+//
+// Dois usos (POST):
+//   áudio WAV (corpo binário)          -> { segments: [{ start: "MM:SS", text, paragraph }], text }
+//   ?mode=summary (corpo JSON {text})  -> { summary }
 
 const MAX_BYTES = 14 * 1024 * 1024;
+const MAX_TEXT_CHARS = 2_000_000;   // ~ 8 horas de fala; cabe folgado na janela do Gemini
 const PROMPT = (lang) => `Transcreva este áudio ${lang ? `em ${lang}` : ""} palavra por palavra, do começo ao fim, sem resumir e sem cortar nada.
+Devolva uma lista JSON de trechos, na ordem em que são falados. Cada trecho tem:
+- "start": o instante em que o trecho começa, no formato MM:SS, contado a partir do início deste áudio (ex.: "00:00", "01:27").
+- "text": o que foi dito, em uma ou poucas frases (um trecho dura no máximo uns 20 segundos).
+- "paragraph": true quando o trecho abre um novo parágrafo (mudança de assunto ou pausa longa), senão false. O primeiro trecho é sempre true.
 Regras:
-- Escreva com ortografia, acentuação e pontuação corretas, em parágrafos bem divididos por assunto.
-- Não escreva horários nem marcações de tempo.
+- Escreva com ortografia, acentuação e pontuação corretas.
 - Não identifique quem fala, a menos que seja necessário para entender.
-- Não traduza, não explique e não comente. Devolva só o texto transcrito.
-- Ignore músicas e ruídos. Se não houver fala, devolva um texto vazio.`;
+- Não traduza, não explique e não comente.
+- Ignore músicas e ruídos. Se não houver fala, devolva uma lista vazia.`;
+const SEGMENTS_SCHEMA = {
+  type: "ARRAY",
+  items: {
+    type: "OBJECT",
+    properties: { start: { type: "STRING" }, text: { type: "STRING" }, paragraph: { type: "BOOLEAN" } },
+    required: ["start", "text", "paragraph"],
+  },
+};
+const SUMMARY_SIZES = {
+  curto: "um resumo curto: um parágrafo de abertura e de 5 a 8 tópicos com os pontos principais",
+  completo: "um resumo completo e bem organizado: uma visão geral, depois os assuntos na ordem em que aparecem (cada um com um título curto e um parágrafo), e no fim os pontos principais em tópicos",
+};
+const SUMMARY_PROMPT = (lang, size) => `Leia a transcrição abaixo (de um áudio, vídeo ou audiolivro) e escreva ${SUMMARY_SIZES[size] || SUMMARY_SIZES.completo}.
+Regras:
+- Escreva ${lang ? `em ${lang}` : "no mesmo idioma da transcrição"}, com ortografia e acentuação corretas.
+- Use só o que está na transcrição. Não invente nomes, datas nem fatos.
+- Não comente a transcrição; devolva só o resumo.
+
+TRANSCRIÇÃO:
+`;
 const LANGS = { portuguese: "português do Brasil", english: "inglês", spanish: "espanhol" };
 
 const cors = (env, req) => {
@@ -70,6 +98,33 @@ function endpoint(env, model, sa) {
   return { url: `https://${host}/v1/projects/${sa.project_id}/locations/${loc}/publishers/google/models/${model}:generateContent` };
 }
 
+async function callGemini(env, sa, parts, generationConfig) {
+  const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+  const ep = endpoint(env, model, sa);
+  const headers = { "Content-Type": "application/json", ...(ep.headers || {}) };
+  if (sa) {
+    try { headers.Authorization = `Bearer ${await vertexToken(sa)}`; }
+    catch (e) { return { error: String(e.message || e), status: 502 }; }
+  }
+  const r = await fetch(ep.url, {
+    method: "POST", headers,
+    body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) return { error: data.error?.message || `Gemini respondeu ${r.status}`, status: r.status === 429 ? 429 : 502 };
+  return { text: (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim() };
+}
+
+// Garante o formato [{ start, text, paragraph }] mesmo se o modelo errar um campo.
+function cleanSegments(raw) {
+  let list;
+  try { list = JSON.parse(raw || "[]"); } catch (_) { return null; }
+  if (!Array.isArray(list)) return null;
+  return list
+    .filter(s => s && typeof s.text === "string" && s.text.trim())
+    .map(s => ({ start: String(s.start ?? ""), text: s.text.trim(), paragraph: s.paragraph === true }));
+}
+
 export default {
   async fetch(req, env) {
     const h = cors(env, req);
@@ -81,28 +136,30 @@ export default {
       try { sa = JSON.parse(env.GOOGLE_SERVICE_ACCOUNT); } catch (_) { return json({ error: "GOOGLE_SERVICE_ACCOUNT não é um JSON válido" }, 500, h); }
     } else if (!env.GEMINI_API_KEY) return json({ error: "servidor sem chave do Google" }, 500, h);
 
-    const body = new Uint8Array(await req.arrayBuffer());
-    if (!body.length) return json({ error: "áudio vazio" }, 400, h);
-    if (body.length > MAX_BYTES) return json({ error: "parte de áudio grande demais" }, 413, h);
+    const q = new URL(req.url).searchParams;
 
-    const lang = LANGS[new URL(req.url).searchParams.get("lang")] || "";
-    const model = env.GEMINI_MODEL || "gemini-2.5-flash";
-    const ep = endpoint(env, model, sa);
-    const headers = { "Content-Type": "application/json", ...(ep.headers || {}) };
-    if (sa) {
-      try { headers.Authorization = `Bearer ${await vertexToken(sa)}`; }
-      catch (e) { return json({ error: String(e.message || e) }, 502, h); }
+    if (q.get("mode") === "summary") {
+      let body;
+      try { body = await req.json(); } catch (_) { return json({ error: "corpo inválido" }, 400, h); }
+      const text = String(body?.text || "").trim();
+      if (!text) return json({ error: "texto vazio" }, 400, h);
+      if (text.length > MAX_TEXT_CHARS) return json({ error: "texto grande demais para resumir" }, 413, h);
+      const out = await callGemini(env, sa, [{ text: SUMMARY_PROMPT(LANGS[body.lang] || "", body.size) + text }], { temperature: 0.3, maxOutputTokens: 16384 });
+      if (out.error) return json({ error: out.error }, out.status, h);
+      return json({ summary: out.text }, 200, h);
     }
-    const r = await fetch(ep.url, {
-      method: "POST", headers,
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: PROMPT(lang) }, { inlineData: { mimeType: "audio/wav", data: toBase64(body) } }] }],
-        generationConfig: { temperature: 0 },
-      }),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) return json({ error: data.error?.message || `Gemini respondeu ${r.status}` }, r.status === 429 ? 429 : 502, h);
-    const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
-    return json({ text }, 200, h);
+
+    const audio = new Uint8Array(await req.arrayBuffer());
+    if (!audio.length) return json({ error: "áudio vazio" }, 400, h);
+    if (audio.length > MAX_BYTES) return json({ error: "parte de áudio grande demais" }, 413, h);
+
+    const lang = LANGS[q.get("lang")] || "";
+    const out = await callGemini(env, sa,
+      [{ text: PROMPT(lang) }, { inlineData: { mimeType: "audio/wav", data: toBase64(audio) } }],
+      { temperature: 0, maxOutputTokens: 32768, responseMimeType: "application/json", responseSchema: SEGMENTS_SCHEMA });
+    if (out.error) return json({ error: out.error }, out.status, h);
+    const segments = cleanSegments(out.text);
+    if (!segments) return json({ error: "o modelo devolveu uma resposta fora do formato" }, 502, h);
+    return json({ segments, text: segments.map(s => s.text).join(" ") }, 200, h);
   },
 };

@@ -86,7 +86,25 @@
   }
   .opt::after { content:""; position:absolute; right:20px; top:50%; width:8px; height:8px; margin-top:-6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); pointer-events:none; }
   .opt select:focus-visible { outline-offset:-3px; }
-  .hint { margin:10px 4px 0; font-size:14px; color:var(--muted); }
+
+  /* Modelo: uma linha que abre para baixo com a explicação */
+  .model { border-top:1px solid var(--line); }
+  .model summary { position:relative; display:flex; align-items:flex-end; gap:8px; height:64px; padding:0 44px 10px 16px; list-style:none; cursor:pointer; font-size:17px; }
+  .model summary::-webkit-details-marker { display:none; }
+  .model summary::after { content:""; position:absolute; right:20px; top:50%; width:8px; height:8px; margin-top:-6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform .2s; }
+  .model[open] summary::after { transform:rotate(225deg); margin-top:-2px; }
+  .model summary:focus-visible { outline-offset:-3px; }
+  .model .k { position:absolute; left:16px; top:10px; font-size:13px; color:var(--muted); pointer-events:none; }
+  .model .mname { font-weight:600; }
+  .model .mdesc { padding:0 16px 16px; color:var(--muted); font-size:15px; }
+  .model .mdesc p { margin:0; max-width:52ch; text-wrap:pretty; }
+  .badge { display:inline-block; vertical-align:middle; margin-left:6px; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:1.6; letter-spacing:.02em; background:var(--sunken); color:var(--accent-text); border:1px solid var(--line-strong); }
+
+  /* Recurso que ainda não existe: aparece apagado, só para mostrar o que vem por aí */
+  .soon { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px; border:1.5px dashed var(--line); border-radius:16px; opacity:.75; cursor:not-allowed; }
+  .soon .fbody strong { display:block; }
+  .soon .fbody span { display:block; font-size:14px; color:var(--muted); }
+  .soon .ficon { color:var(--muted); }
 
   /* Botões */
   .btn, button.primary {
@@ -114,7 +132,7 @@
   .rhead { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:0 8px 12px; }
   .rhead h2 { margin:0; font-family:var(--font-display); font-weight:800; font-size:24px; letter-spacing:-0.02em; }
   #count { color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums; }
-  #out { display:block; width:100%; height:min(46vh, 340px); resize:vertical; padding:14px; font:inherit; font-size:16px; line-height:1.55; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:16px; }
+  #out, #sumOut { display:block; width:100%; height:min(46vh, 340px); resize:vertical; padding:14px; font:inherit; font-size:16px; line-height:1.55; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:16px; }
   button.btn { border:0; }
   .cues { list-style:none; margin:0; padding:4px 0; max-height:min(46vh, 340px); overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:16px; -webkit-overflow-scrolling:touch; }
   .cues li { display:grid; grid-template-columns:52px 1fr; gap:12px; padding:10px 14px; }
@@ -127,6 +145,19 @@
   .btn.save:hover { background:var(--accent-press); }
   .btn.alt { background:transparent; color:var(--accent-text); border:1.5px solid var(--line-strong); }
   .btn.alt:hover { border-color:var(--accent); }
+  .btn.alt[aria-disabled="true"] { opacity:.5; pointer-events:none; }
+  .dl + .dl { margin-top:10px; }
+
+  /* Resumo */
+  .sum { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+  .sum h3 { margin:0 8px 4px; font-family:var(--font-display); font-weight:800; font-size:20px; letter-spacing:-0.02em; }
+  .sum .lead { margin:0 8px 12px; color:var(--muted); font-size:15px; }
+  .sum .opts { margin-top:0; }
+  .sum button.primary:disabled { opacity:.7; }
+  #sumMsg { margin:12px 4px 0; font-size:15px; }
+  #sumMsg:empty { display:none; }
+  #sumMsg.err { color:var(--err); background:var(--err-bg); border-radius:12px; padding:12px 14px; margin:12px 0 0; }
+  #sumOut { margin-top:12px; }
   @media (min-width:520px) { .dl { flex-direction:row; } .dl .btn { flex:1; } }
 
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; scroll-behavior:auto !important; } }
@@ -176,20 +207,19 @@
           <option value="spanish">Espanhol</option>
         </select>
       </label>
-      <label class="opt" id="optModel"><span class="k">Qualidade</span>
-        <select id="model">
-          <option value="melhor" selected>Melhor (mais lento)</option>
-          <option value="rapido">Rápida</option>
-        </select>
-      </label>
-      <label class="opt" id="optEngine" hidden><span class="k">Como transcrever</span>
-        <select id="engine">
-          <option value="gemini" selected>Gemini (mais preciso)</option>
-          <option value="whisper">No navegador (grátis, sem enviar o arquivo)</option>
-        </select>
-      </label>
+      <details class="model" id="model">
+        <summary><span class="k">Modelo</span><span class="mname">Reo<span class="badge">Beta</span></span></summary>
+        <div class="mdesc"><p>O Reo é a IA do Transcriby. Foi treinado para entender melhor os áudios, captar as nuances da fala e conseguir explicar o que ouviu. Roda em conjunto com o modelo Argon. Ainda está em fase Beta, então pode ter pequenas falhas enquanto melhoramos.</p></div>
+      </details>
     </div>
-    <p class="hint" id="hint" hidden>No celular a transcrição usa o modo Rápido, o mais estável. O modo Melhor fica para o computador.</p>
+
+    <div class="soon" id="soonZip" aria-disabled="true">
+      <span class="ficon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M12 10v1M12 13v1M12 16v1"/></svg>
+      </span>
+      <span class="fbody"><strong>Conversa em ZIP</strong><span>Envie a conversa exportada: separamos áudios e textos e resumimos quem disse o quê.</span></span>
+      <span class="badge">Em breve</span>
+    </div>
 
     <button class="primary" id="go" disabled>Transcrever</button>
 
@@ -205,36 +235,58 @@
     <textarea id="out" readonly aria-label="Texto transcrito"></textarea>
     <div class="dl">
       <button type="button" id="copy" class="btn save">Copiar texto</button>
-      <a id="dl-txt" class="btn alt" href="#">Baixar TXT</a>
+    </div>
+    <div class="dl">
+      <a id="dl-txt" class="btn alt" href="#">Baixar texto (TXT)</a>
+      <a id="dl-srt" class="btn alt" href="#">Baixar SRT com tempo</a>
+    </div>
+
+    <div class="sum">
+      <h3>Resumo</h3>
+      <p class="lead">Ideal para audiolivro, aula ou reunião longa: a IA lê o texto todo e entrega só o que importa.</p>
+      <div class="opts">
+        <label class="opt"><span class="k">Tamanho do resumo</span>
+          <select id="sumSize">
+            <option value="completo" selected>Completo, por assunto</option>
+            <option value="curto">Curto, só o essencial</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="primary" id="sumGo">Gerar resumo</button>
+      <div id="sumMsg" role="status"></div>
+      <div id="sumBox" hidden>
+        <textarea id="sumOut" readonly aria-label="Resumo"></textarea>
+        <div class="dl">
+          <button type="button" id="sumCopy" class="btn save">Copiar resumo</button>
+          <a id="sumDl" class="btn alt" href="#">Baixar resumo (TXT)</a>
+        </div>
+      </div>
     </div>
   </section>
 </main>
 <script type="module">
-import { toTxt } from "./srt.js";
-import { transcribeWithGemini, NeedKey } from "./gemini.js";
+import { toSrt, toPrettyText } from "./srt.js";
+import { transcribeWithGemini, summarize, NeedKey } from "./gemini.js";
 import { GEMINI_URL } from "./config.js";
 import { decodeToMono16k } from "./audio.js";
 const $ = id => document.getElementById(id);
 const GO = 'Transcrever', RETRY = 'Tentar de novo', WORK = 'Transcrevendo…';
-let file = null, worker = null, urls = [];
+let file = null, text = '', urls = [], sumUrl = '';
 const label = t => { $('go').textContent = t; };
 const busy = b => document.body.classList.toggle('busy', b);
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform));
-// No celular o modo "Melhor" fechava a aba do Safari sozinho. Lá só existe o modo Rápido; o Melhor fica para o computador.
-if (isMobile) { $('model').value = 'rapido'; $('optModel').hidden = true; $('hint').hidden = false; }
 
 // Anota em que etapa a página está. Se o navegador fechar a aba, ao reabrir dá para dizer onde foi.
 const KEY = 'transcriby_etapa';
 let lastEtapa = '';
 const mark = etapa => {
   if (etapa === lastEtapa) return; lastEtapa = etapa;
-  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: file ? Math.round(file.size / 1048576) : 0, modelo: useGemini() ? 'Gemini' : $('model').value })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: file ? Math.round(file.size / 1048576) : 0 })); } catch (_) {}
 };
 const unmark = () => { lastEtapa = ''; try { localStorage.removeItem(KEY); } catch (_) {} };
 try {
   const last = JSON.parse(localStorage.getItem(KEY) || 'null');
   if (last && Date.now() - last.t < 30 * 60 * 1000) {
-    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB, qualidade ${last.modelo}). Provavelmente faltou memória no navegador. ${isMobile ? "Tente enviar só o áudio (M4A ou MP3)." : 'Tente a qualidade "Rápida" ou envie só o áudio (M4A ou MP3).'}`;
+    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB). Provavelmente faltou memória no navegador. Tente enviar só o áudio (M4A ou MP3).`;
     $('msg').classList.add('err');
   }
   localStorage.removeItem(KEY);
@@ -261,75 +313,103 @@ $('file').onchange = e => e.target.files[0] && pick(e.target.files[0]);
 ['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]));
 
-function show(text, name) {
+const blobUrl = (content, type) => URL.createObjectURL(new Blob([content], { type: type + ';charset=utf-8' }));
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const copyFrom = async (area, btn, idle) => {
+  try { await navigator.clipboard.writeText(area.value); }
+  catch (_) { area.select(); document.execCommand('copy'); }
+  btn.textContent = 'Copiado!'; setTimeout(() => { btn.textContent = idle; }, 2000);
+};
+
+let baseName = 'transcricao';
+function show(segs, name) {
+  baseName = name; text = toPrettyText(segs);
   urls.forEach(URL.revokeObjectURL); urls = [];
-  const u = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-  urls.push(u); $('dl-txt').href = u; $('dl-txt').download = name + '.txt';
+  const txt = blobUrl(text, 'text/plain'), srt = blobUrl(toSrt(segs), 'application/x-subrip');
+  urls.push(txt, srt);
+  $('dl-txt').href = txt; $('dl-txt').download = name + '.txt';
+  $('dl-srt').href = srt; $('dl-srt').download = name + '.srt';
   $('out').value = text;
   const words = (text.match(/\S+/g) || []).length;
   $('count').textContent = words.toLocaleString('pt-BR') + (words === 1 ? ' palavra' : ' palavras');
   $('copy').textContent = 'Copiar texto';
+  resetSummary();
   $('result').hidden = false;
-  $('result').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('result').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
 }
-$('copy').onclick = async () => {
-  try { await navigator.clipboard.writeText($('out').value); }
-  catch (_) { $('out').select(); document.execCommand('copy'); }
-  $('copy').textContent = 'Copiado!'; setTimeout(() => { $('copy').textContent = 'Copiar texto'; }, 2000);
-};
+$('copy').onclick = () => copyFrom($('out'), $('copy'), 'Copiar texto');
 
-// Com o endereço do servidor configurado, o Gemini vira o padrão; sem ele só existe o Whisper no navegador.
-if (GEMINI_URL) $('optEngine').hidden = false;
-const useGemini = () => !!GEMINI_URL && $('engine').value === 'gemini';
+// Código de acesso do site (só se o servidor pedir). O link ...?codigo=SENHA grava o código neste aparelho e some da barra de endereço.
 const KEYSTORE = 'transcriby_codigo';
-// Link para a equipe: ...?codigo=SENHA grava o código neste aparelho e some da barra de endereço (ninguém precisa digitar).
 try {
   const q = new URLSearchParams(location.search), c = (q.get('codigo') || '').trim();
   if (c) { localStorage.setItem(KEYSTORE, c); q.delete('codigo'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
 } catch (_) {}
 const getKey = () => { try { return localStorage.getItem(KEYSTORE) || ''; } catch (_) { return ''; } };
 const askKey = () => { const k = (prompt('Digite o código de acesso do site:') || '').trim(); try { localStorage.setItem(KEYSTORE, k); } catch (_) {} return k; };
-
-async function runGemini(audio, name) {
-  const language = $('lang').value;
-  const onProgress = (i, n) => { setP(10 + Math.round(85 * i / n), n === 1 ? 'Transcrevendo com o Gemini…' : `Transcrevendo com o Gemini… parte ${Math.min(i + 1, n)} de ${n}`); mark('transcrevendo com o Gemini'); };
+// Roda a chamada ao servidor; se ele pedir o código de acesso, pergunta e tenta de novo.
+async function withKey(call) {
   let key = getKey();
   for (let tries = 0; ; tries++) {
-    try {
-      const text = await transcribeWithGemini(audio, { url: GEMINI_URL, language, key, onProgress });
-      unmark(); busy(false); $('go').disabled = false; label(GO);
-      if (!text.trim()) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
-      setP(100, ''); return show(text, name);
-    } catch (e) {
-      if (e instanceof NeedKey && tries < 2) { key = askKey(); if (!key) return fail('Precisa do código de acesso para usar o Gemini.'); continue; }
-      return fail('Erro ao transcrever: ' + (e.message || e) + '. Se continuar, troque "Como transcrever" para "No navegador".');
+    try { return await call(key); }
+    catch (e) {
+      if (e instanceof NeedKey && tries < 2) { key = askKey(); if (!key) throw new Error('Precisa do código de acesso do site.'); continue; }
+      throw e;
     }
+  }
+}
+
+async function runReo(audio, name) {
+  const language = $('lang').value;
+  const onProgress = (i, n) => { setP(10 + Math.round(85 * i / n), n === 1 ? 'Transcrevendo com o Reo…' : `Transcrevendo com o Reo… parte ${Math.min(i + 1, n)} de ${n}`); mark('transcrevendo com o Reo'); };
+  try {
+    const segs = await withKey(key => transcribeWithGemini(audio, { url: GEMINI_URL, language, key, onProgress }));
+    unmark(); busy(false); $('go').disabled = false; label(GO);
+    if (!segs.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
+    setP(100, ''); show(segs, name);
+  } catch (e) {
+    fail('Erro ao transcrever: ' + (e.message || e) + '. Se continuar, aperte "Tentar de novo".');
   }
 }
 
 $('go').onclick = async () => {
   $('go').disabled = true; label(WORK); $('result').hidden = true; busy(true);
   try {
+    if (!GEMINI_URL) throw new Error('o servidor de transcrição não está configurado');
     setP(1, 'Lendo o áudio do arquivo…'); mark('lendo o áudio do arquivo');
     const audio = await decodeToMono16k(file, f => setP(1 + Math.round(f * 8), `Lendo o áudio do arquivo… ${Math.round(f * 100)}%`));
-    const name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
-    if (useGemini()) return runGemini(audio, name);
-    if (worker) worker.terminate();
-    worker = new Worker('./worker.js', { type: 'module' });
-    worker.onmessage = ({ data }) => {
-      if (data.type === 'status') { setP(data.pct, data.msg); mark(data.msg.replace(/\s*\d+%/g, '').replace(/…+$/, '')); }
-      else if (data.type === 'done') {
-        unmark(); busy(false); $('go').disabled = false; label(GO);
-        if (!data.segments.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
-        setP(100, ''); show(toTxt(data.segments, 'completo'), name);
-      } else if (data.type === 'error') fail('Erro ao transcrever: ' + data.msg);
-    };
-    worker.onerror = () => fail('Não consegui carregar o transcritor. Verifique a internet e tente de novo.');
-    worker.postMessage({ audio, language: $('lang').value, model: $('model').value, mobile: isMobile }, [audio.buffer]);
+    return runReo(audio, file.name.replace(/\.[^.]+$/, '') || 'transcricao');
   } catch (e) {
     fail('Não consegui ler esse arquivo (' + (e.message || e) + '). Seu arquivo continua escolhido: aperte "Tentar de novo" ou escolha outro.');
   }
 };
+
+// Resumo do texto já transcrito (o servidor usa a mesma chave; só roda quando a pessoa pede).
+function resetSummary() {
+  if (sumUrl) URL.revokeObjectURL(sumUrl); sumUrl = '';
+  $('sumBox').hidden = true; $('sumOut').value = ''; $('sumMsg').textContent = ''; $('sumMsg').classList.remove('err');
+  $('sumGo').disabled = false; $('sumGo').textContent = 'Gerar resumo';
+}
+$('sumGo').onclick = async () => {
+  const btn = $('sumGo'), msg = $('sumMsg');
+  btn.disabled = true; btn.textContent = 'Gerando resumo…'; $('sumBox').hidden = true;
+  msg.classList.remove('err'); msg.textContent = 'O Reo está lendo o texto todo. Textos longos levam um pouco mais.';
+  try {
+    const summary = await withKey(key => summarize(text, { url: GEMINI_URL, language: $('lang').value, size: $('sumSize').value, key }));
+    if (!summary) throw new Error('o resumo veio vazio');
+    msg.textContent = '';
+    if (sumUrl) URL.revokeObjectURL(sumUrl);
+    sumUrl = blobUrl(summary + '\n', 'text/plain');
+    $('sumOut').value = summary; $('sumDl').href = sumUrl; $('sumDl').download = baseName + '-resumo.txt';
+    $('sumCopy').textContent = 'Copiar resumo'; $('sumBox').hidden = false;
+    btn.textContent = 'Gerar de novo';
+  } catch (e) {
+    msg.classList.add('err'); msg.textContent = 'Não consegui gerar o resumo: ' + (e.message || e) + '.';
+    btn.textContent = RETRY;
+  }
+  btn.disabled = false;
+};
+$('sumCopy').onclick = () => copyFrom($('sumOut'), $('sumCopy'), 'Copiar resumo');
 </script>
 </body>
 </html>
