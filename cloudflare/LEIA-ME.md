@@ -18,7 +18,7 @@ da Cloudflare (100 mil pedidos por dia) sobra.
 6. No GitHub, abra `docs/config.js`, toque no lápis, troque `GEMINI_URL = ""` pelo endereço entre aspas e salve.
    (Faça o mesmo em `web/config.js` para manter as duas pastas iguais.)
 
-Pronto: o site passa a mostrar "Como transcrever: Gemini (mais preciso)".
+Pronto: o site passa a transcrever com o modelo Reo (Beta). O mesmo Worker também gera o resumo (`?mode=summary`).
 
 ## Usando a chave da Vertex (arquivo .json da conta de serviço)
 
@@ -37,4 +37,5 @@ projeto e a conta de serviço com o papel **Vertex AI User**. A transcrição pa
 
 - A chave do AI Studio tem cota grátis com limite por minuto e por dia. Para vídeos de 10 minutos de uso pessoal costuma bastar.
 - Modelo padrão: `gemini-2.5-flash`. Para outro, crie a variável `GEMINI_MODEL`.
-- O áudio vai para o Google quando você usa o Gemini. Para não enviar nada, escolha "No navegador".
+- O áudio vai para o Google durante a transcrição. O site não tem mais o modo "No navegador" (Whisper).
+- O Worker devolve os trechos com o tempo de início (`{segments: [{start: "MM:SS", text, paragraph}]}`); o site monta o texto em parágrafos e o SRT.

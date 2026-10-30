@@ -1,7 +1,7 @@
-// Geração de SRT/TXT a partir dos trechos do Whisper: [{start, end, text}]
+// Geração de SRT e de texto corrido a partir dos trechos: [{start, end, text, paragraph}]
 
-const CAPCUT_MAX_CHARS = 24;
 const MAX_LINE = 42;
+const MAX_PARAGRAPH = 900;   // parágrafo sem quebra marcada é cortado no fim de frase depois disso
 
 export function ts(sec) {
   let ms = Math.round(Math.max(sec, 0) * 1000);
@@ -10,24 +10,6 @@ export function ts(sec) {
   const s = Math.floor(ms / 1000); ms -= s * 1000;
   const p = (n, l = 2) => String(n).padStart(l, "0");
   return `${p(h)}:${p(m)}:${p(s)},${p(ms, 3)}`;
-}
-
-export function stripPunct(text) {
-  return text
-    .replace(/(?<!\d)[,.](?!\d)/g, " ")                 // mantém 3,5 e 1.000
-    .replace(/[!?;:…—–"'“”‘’()\[\]{}«»]+/g, " ")
-    .replace(/(?<!\w)-|-(?!\w)/g, " ")                   // hífen solto
-    .replace(/\s+/g, " ").trim();
-}
-
-function chunkWords(words, max) {
-  const out = []; let cur = [];
-  for (const w of words) {
-    if (cur.length && (cur.join(" ") + " " + w).length > max) { out.push(cur.join(" ")); cur = []; }
-    cur.push(w);
-  }
-  if (cur.length) out.push(cur.join(" "));
-  return out;
 }
 
 function wrapLines(text, width) {
@@ -91,41 +73,19 @@ function groupLines(text) {
   return groups.map(g => g.join("\n"));
 }
 
-/** style: "capcut" (curto, sem pontuação) ou "completo" (com pontuação, 2 linhas) */
-export function toSrt(segments, style) {
-  if (style === "capcut") return cues(segments, t => chunkWords(stripPunct(t).split(" ").filter(Boolean), CAPCUT_MAX_CHARS));
+export function toSrt(segments) {
   return cues(segments, groupLines);
 }
 
-export function toTxt(segments, style) {
-  const all = segments.map(s => s.text.trim()).join(" ");
-  if (style === "capcut") return stripPunct(all) + "\n";
-  // parágrafos: nova quebra após pausa longa ou ~700 caracteres, sempre no fim de frase
-  const paras = []; let cur = "", lastEnd = null;
+/** Texto corrido, em parágrafos: usa a quebra marcada pelo modelo e corta parágrafos longos no fim de uma frase. */
+export function toPrettyText(segments) {
+  const paras = []; let cur = "";
   for (const s of segments) {
-    const gap = lastEnd === null ? 0 : s.start - lastEnd;
-    if (cur && /[.!?]$/.test(cur.trim()) && (gap >= 1.5 || cur.length >= 700)) { paras.push(cur.trim()); cur = ""; }
-    cur += s.text.trim() + " "; lastEnd = s.end;
+    const t = s.text.replace(/\s+/g, " ").trim();
+    if (!t) continue;
+    if (cur && (s.paragraph || (cur.length >= MAX_PARAGRAPH && /[.!?…]$/.test(cur)))) { paras.push(cur); cur = ""; }
+    cur = cur ? cur + " " + t : t;
   }
-  if (cur.trim()) paras.push(cur.trim());
+  if (cur) paras.push(cur);
   return paras.join("\n\n") + "\n";
-}
-
-// Limpa o "lixo" típico do Whisper: letras de outros alfabetos (coreano, chinês, russo…), frases repetidas em loop
-// e palavras repetidas dezenas de vezes. Só mexe nos alfabetos quando o idioma foi escolhido (não é "detectar").
-const FOREIGN = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Thai}\p{Script=Hebrew}\p{Script=Devanagari}]/gu;
-
-export function cleanSegments(segments, language) {
-  const out = []; let lastKey = "", run = 0, removed = 0;
-  for (const seg of segments) {
-    let t = seg.text;
-    if (language) t = t.replace(FOREIGN, " ");
-    t = t.replace(/\b([\p{L}\d]+)(?:[\s,.!?]+\1\b){3,}/giu, "$1");   // "sim sim sim sim sim" -> "sim"
-    t = t.replace(/\s+/g, " ").trim();
-    const key = stripPunct(t).toLowerCase();
-    if (key.replace(/[^\p{L}\d]/gu, "").length < 2) { removed++; continue; }
-    if (key === lastKey) { run++; if (run >= 1) { removed++; continue; } } else { run = 0; lastKey = key; }
-    out.push({ ...seg, text: " " + t });
-  }
-  return { segments: out, removed };
 }
