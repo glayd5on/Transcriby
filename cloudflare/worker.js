@@ -1,15 +1,32 @@
-// Mini servidor grátis (Cloudflare Worker): guarda a chave do Google e repassa o áudio ao Gemini.
+// Mini servidor grátis (Cloudflare Worker): guarda a chave do Google e repassa o áudio, as imagens e o chat ao Gemini.
 // Dois jeitos de autenticar (use um):
 //   VERTEX:    GOOGLE_SERVICE_ACCOUNT (secreta, o conteúdo do arquivo .json da conta de serviço)
 //              + VERTEX_LOCATION (opcional, padrão us-central1)
 //   AI STUDIO: GEMINI_API_KEY (secreta)
-// Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (ex.: https://glayd5on.github.io), GEMINI_MODEL (opcional).
+// Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (ex.: https://glayd5on.github.io).
+// Modelos (opcionais; trocam os padrões abaixo): MODEL_LITE, MODEL_FLASH, MODEL_FALLBACK.
+// Alerta do chat (opcionais): KV ABUSE_KV (wrangler.toml) e segredos TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID. Ver guard.js.
 //
-// Dois usos (POST):
-//   áudio WAV (corpo binário)          -> { segments: [{ start: "MM:SS", text, paragraph }], text }
-//   ?mode=summary (corpo JSON {text})  -> { summary }
+// Usos (POST):
+//   áudio (corpo binário, WAV por padrão)  -> { segments: [{ start: "MM:SS", text, paragraph }], text }
+//   ?mode=image (corpo = imagem)           -> { text } (descrição curta)
+//   ?mode=summary (corpo JSON {text})      -> { summary }
+//   ?mode=chat (corpo JSON {message, history, transcript}) -> { reply }   (Reo)
+
+import { buildReoSystem } from "./reo.js";
+import { guardChat } from "./guard.js";
+
+// ===== Modelos (constantes configuráveis) =====
+const MODEL_LITE = "gemini-3.1-flash-lite";   // transcrição de áudio e descrição de imagem
+const MODEL_FLASH = "gemini-3.8-flash";       // chat do Reo, resumos e organização (só quando a pessoa pede no site)
+const MODEL_FALLBACK = "gemini-2.5-flash";    // usado só se o modelo acima não existir naquela região/projeto
 
 const MAX_BYTES = 14 * 1024 * 1024;
+const MAX_TRANSCRIPT_CHARS = 3_000_000;   // transcrição enviada ao chat (~1 milhão de tokens)
+const MAX_MESSAGE_CHARS = 4000;           // pergunta do usuário ao Reo
+const MAX_HISTORY_TURNS = 16;             // mensagens anteriores lembradas pelo Reo
+const AUDIO_MIMES = ["audio/wav", "audio/x-wav", "audio/ogg", "audio/opus", "audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a", "audio/aac", "audio/x-aac", "audio/flac", "audio/webm"];
+const IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const MAX_TEXT_CHARS = 2_000_000;   // ~ 8 horas de fala; cabe folgado na janela do Gemini
 const PROMPT = (lang) => `Transcreva este áudio ${lang ? `em ${lang}` : ""} palavra por palavra, do começo ao fim, sem resumir e sem cortar nada.
 Devolva uma lista JSON de trechos, na ordem em que são falados. Cada trecho tem:
@@ -29,6 +46,11 @@ const SEGMENTS_SCHEMA = {
     required: ["start", "text", "paragraph"],
   },
 };
+const IMAGE_PROMPT = `Descreva esta imagem, enviada numa conversa de WhatsApp, em uma ou duas frases curtas e objetivas, em português do Brasil.
+Regras:
+- Diga só o que é visível: pessoas, objetos, lugar, ação. Não invente nomes, não adivinhe intenções.
+- Se houver texto legível importante (documento, placa, mensagem na tela), transcreva o essencial entre aspas.
+- Comece direto pelo conteúdo (ex.: "Contrato assinado sobre uma mesa."). Sem introdução e sem comentários.`;
 const SUMMARY_SIZES = {
   curto: "um resumo curto: um parágrafo de abertura e de 5 a 8 tópicos com os pontos principais",
   completo: "um resumo completo e bem organizado: uma visão geral, depois os assuntos na ordem em que aparecem (cada um com um título curto e um parágrafo), e no fim os pontos principais em tópicos",
@@ -48,7 +70,7 @@ const cors = (env, req) => {
   const allowed = env.ALLOWED_ORIGIN ? env.ALLOWED_ORIGIN.split(",").map(s => s.trim()) : null;
   return {
     "Access-Control-Allow-Origin": !allowed || allowed.includes(o) ? (o || "*") : allowed[0],
-    "Access-Control-Allow-Headers": "Content-Type, X-Access-Key",
+    "Access-Control-Allow-Headers": "Content-Type, X-Access-Key, X-Session-Id",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
@@ -98,21 +120,37 @@ function endpoint(env, model, sa) {
   return { url: `https://${host}/v1/projects/${sa.project_id}/locations/${loc}/publishers/google/models/${model}:generateContent` };
 }
 
-async function callGemini(env, sa, parts, generationConfig) {
-  const model = env.GEMINI_MODEL || "gemini-2.5-flash";
-  const ep = endpoint(env, model, sa);
-  const headers = { "Content-Type": "application/json", ...(ep.headers || {}) };
+// Modelos da família 2.x aceitam temperatura 0; nos 3.x o Google recomenda deixar o padrão.
+const configFor = (model, cfg) => {
+  const { temperature, ...rest } = cfg || {};
+  return /^gemini-2/.test(model) && temperature !== undefined ? { ...rest, temperature } : rest;
+};
+const isModelMissing = (status, msg) => status === 404 || /not found|does not exist|not supported|unsupported/i.test(msg || "");
+
+async function callGemini(env, sa, parts, generationConfig, { model, systemInstruction, contents } = {}) {
+  const main = model || env.MODEL_FLASH || MODEL_FLASH;
+  const fallback = env.MODEL_FALLBACK || MODEL_FALLBACK;
+  const headers0 = { "Content-Type": "application/json" };
   if (sa) {
-    try { headers.Authorization = `Bearer ${await vertexToken(sa)}`; }
+    try { headers0.Authorization = `Bearer ${await vertexToken(sa)}`; }
     catch (e) { return { error: String(e.message || e), status: 502 }; }
   }
-  const r = await fetch(ep.url, {
-    method: "POST", headers,
-    body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig }),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) return { error: data.error?.message || `Gemini respondeu ${r.status}`, status: r.status === 429 ? 429 : 502 };
-  return { text: (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim() };
+  let last;
+  for (const m of main === fallback ? [main] : [main, fallback]) {
+    const ep = endpoint(env, m, sa);
+    const body = {
+      contents: contents || [{ role: "user", parts }],
+      generationConfig: configFor(m, generationConfig),
+    };
+    if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
+    const r = await fetch(ep.url, { method: "POST", headers: { ...headers0, ...(ep.headers || {}) }, body: JSON.stringify(body) });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) return { text: (data.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || "").join("").trim(), model: m };
+    const msg = data.error?.message || `Gemini respondeu ${r.status}`;
+    last = { error: msg, status: r.status === 429 ? 429 : 502 };
+    if (!isModelMissing(r.status, msg)) return last;   // só tenta o modelo reserva quando o modelo principal não existe
+  }
+  return last;
 }
 
 // Garante o formato [{ start, text, paragraph }] mesmo se o modelo errar um campo.
@@ -125,8 +163,16 @@ function cleanSegments(raw) {
     .map(s => ({ start: String(s.start ?? ""), text: s.text.trim(), paragraph: s.paragraph === true }));
 }
 
+const textOf = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
+
+// Mime do corpo: só aceita os tipos que o Gemini entende; senão assume o padrão.
+function mimeFrom(req, allowed, fallback) {
+  const m = (req.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
+  return allowed.includes(m) ? m : fallback;
+}
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const h = cors(env, req);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
     if (req.method !== "POST") return json({ error: "use POST" }, 405, h);
@@ -137,26 +183,68 @@ export default {
     } else if (!env.GEMINI_API_KEY) return json({ error: "servidor sem chave do Google" }, 500, h);
 
     const q = new URL(req.url).searchParams;
+    const mode = q.get("mode") || "audio";
+    const lite = env.MODEL_LITE || MODEL_LITE;
+    const flash = env.MODEL_FLASH || MODEL_FLASH;
 
-    if (q.get("mode") === "summary") {
+    // ===== Chat com o Reo: só texto, só modelo de texto, único contexto = a transcrição enviada =====
+    if (mode === "chat") {
+      let body;
+      try { body = await req.json(); } catch (_) { return json({ error: "corpo inválido" }, 400, h); }
+      const message = textOf(body?.message, MAX_MESSAGE_CHARS).trim();
+      const transcript = typeof body?.transcript === "string" ? body.transcript : "";
+      if (!message) return json({ error: "mensagem vazia" }, 400, h);
+      if (!transcript.trim()) return json({ error: "sem conversa para analisar" }, 400, h);
+      if (transcript.length > MAX_TRANSCRIPT_CHARS) return json({ error: "a conversa é grande demais para o chat" }, 413, h);
+
+      const barrado = await guardChat(req, env, ctx || { waitUntil() {} }, message, h);
+      if (barrado) return barrado;
+
+      // Histórico: só texto, papéis válidos, as últimas mensagens; precisa terminar numa pergunta do usuário.
+      const history = (Array.isArray(body.history) ? body.history : [])
+        .filter(t => t && (t.role === "user" || t.role === "model") && typeof t.text === "string" && t.text.trim())
+        .slice(-MAX_HISTORY_TURNS)
+        .map(t => ({ role: t.role, parts: [{ text: t.text.slice(0, 8000) }] }));
+      while (history.length && history[0].role !== "user") history.shift();
+      const contents = [...history, { role: "user", parts: [{ text: message }] }];
+
+      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192 }, { model: flash, systemInstruction: buildReoSystem(transcript), contents });
+      if (out.error) return json({ error: out.error }, out.status, h);
+      return json({ reply: out.text || "Não consegui responder agora. Tente reformular a pergunta." }, 200, h);
+    }
+
+    if (mode === "summary") {
       let body;
       try { body = await req.json(); } catch (_) { return json({ error: "corpo inválido" }, 400, h); }
       const text = String(body?.text || "").trim();
       if (!text) return json({ error: "texto vazio" }, 400, h);
       if (text.length > MAX_TEXT_CHARS) return json({ error: "texto grande demais para resumir" }, 413, h);
-      const out = await callGemini(env, sa, [{ text: SUMMARY_PROMPT(LANGS[body.lang] || "", body.size) + text }], { temperature: 0.3, maxOutputTokens: 16384 });
+      const out = await callGemini(env, sa, [{ text: SUMMARY_PROMPT(LANGS[body.lang] || "", body.size) + text }], { temperature: 0.3, maxOutputTokens: 16384 }, { model: flash });
       if (out.error) return json({ error: out.error }, out.status, h);
       return json({ summary: out.text }, 200, h);
     }
 
-    const audio = new Uint8Array(await req.arrayBuffer());
-    if (!audio.length) return json({ error: "áudio vazio" }, 400, h);
-    if (audio.length > MAX_BYTES) return json({ error: "parte de áudio grande demais" }, 413, h);
+    const bytes = new Uint8Array(await req.arrayBuffer());
+
+    // ===== Descrição curta de uma imagem =====
+    if (mode === "image") {
+      if (!bytes.length) return json({ error: "imagem vazia" }, 400, h);
+      if (bytes.length > MAX_BYTES) return json({ error: "imagem grande demais" }, 413, h);
+      const out = await callGemini(env, sa,
+        [{ text: IMAGE_PROMPT }, { inlineData: { mimeType: mimeFrom(req, IMAGE_MIMES, "image/jpeg"), data: toBase64(bytes) } }],
+        { temperature: 0, maxOutputTokens: 1024 }, { model: lite });
+      if (out.error) return json({ error: out.error }, out.status, h);
+      return json({ text: out.text }, 200, h);
+    }
+
+    // ===== Transcrição de áudio (padrão) =====
+    if (!bytes.length) return json({ error: "áudio vazio" }, 400, h);
+    if (bytes.length > MAX_BYTES) return json({ error: "parte de áudio grande demais" }, 413, h);
 
     const lang = LANGS[q.get("lang")] || "";
     const out = await callGemini(env, sa,
-      [{ text: PROMPT(lang) }, { inlineData: { mimeType: "audio/wav", data: toBase64(audio) } }],
-      { temperature: 0, maxOutputTokens: 32768, responseMimeType: "application/json", responseSchema: SEGMENTS_SCHEMA });
+      [{ text: PROMPT(lang) }, { inlineData: { mimeType: mimeFrom(req, AUDIO_MIMES, "audio/wav"), data: toBase64(bytes) } }],
+      { temperature: 0, maxOutputTokens: 32768, responseMimeType: "application/json", responseSchema: SEGMENTS_SCHEMA }, { model: lite });
     if (out.error) return json({ error: out.error }, out.status, h);
     const segments = cleanSegments(out.text);
     if (!segments) return json({ error: "o modelo devolveu uma resposta fora do formato" }, 502, h);

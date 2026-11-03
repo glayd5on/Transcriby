@@ -4,3 +4,11 @@ main = "cloudflare/worker.js"
 compatibility_date = "2025-01-01"
 # Mantém as variáveis criadas no painel da Cloudflare (senha, chaves) quando o código é publicado de novo.
 keep_vars = true
+
+# Alerta e freio do chat do Reo (ver cloudflare/LEIA-ME.md, passo "Alerta no Telegram").
+# Para ligar: crie o KV chamado ABUSE_KV no painel da Cloudflare, copie o ID dele,
+# apague o "#" das 3 linhas abaixo e troque COLE_O_ID_AQUI pelo ID. NÃO ligue antes de ter o ID real
+# (um ID falso faz a publicação do Worker falhar). Sem o KV o Worker funciona, só sem o alerta.
+# [[kv_namespaces]]
+# binding = "ABUSE_KV"
+# id = "COLE_O_ID_AQUI"

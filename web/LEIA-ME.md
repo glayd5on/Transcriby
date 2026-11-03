@@ -14,8 +14,12 @@ Para testar no computador: `cd web && python3 -m http.server 8000` e abra http:/
 
 ## Arquivos
 
-- `index.html`: tela (idioma, modelo Reo, "Conversa em ZIP" em breve, resultado, downloads e resumo)
+- `index.html`: tela (idioma, modelo Reo, resultado, downloads e resumo; tela da conversa do WhatsApp com filtros, busca, exportar .md e chat com o Reo)
 - `gemini.js`: corta o áudio em partes, envia ao Worker, ajusta o tempo dos trechos e pede o resumo
 - `srt.js`: monta o texto em parágrafos e o SRT com tempo
 - `audio.js`: lê o áudio do arquivo (aos poucos, sem carregar o vídeo inteiro) e converte para mono 16 kHz
-- `config.js`: endereço do Worker
+- `whatsapp.js`: lê a conversa exportada (iPhone e Android), monta as linhas `[data hora] Pessoa (tipo): texto`, filtros e .md
+- `media.js`: abre o .zip aos poucos (zip.js), mede o áudio (limite de 10 h) e transcreve áudios, fala dos vídeos e descreve imagens
+- `config.js`: endereço do Worker e limite de horas de áudio (`MAX_AUDIO_HOURS`)
+
+Testes (sem navegador): `node --test tests/*.test.mjs`, na raiz do repositório.
