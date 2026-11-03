@@ -14,5 +14,5 @@ keep_vars = true
 # id = "COLE_O_ID_AQUI"
 
 
-# Habilita builds de prvia isolapreviaara branches e pull requests.
+# Enable isolated previews for pull requests.
 [previews]
