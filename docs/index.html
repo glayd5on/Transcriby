@@ -100,12 +100,6 @@
   .model .mdesc p { margin:0; max-width:52ch; text-wrap:pretty; }
   .badge { display:inline-block; vertical-align:middle; margin-left:6px; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:1.6; letter-spacing:.02em; background:var(--sunken); color:var(--accent-text); border:1px solid var(--line-strong); }
 
-  /* Recurso que ainda não existe: aparece apagado, só para mostrar o que vem por aí */
-  .soon { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px; border:1.5px dashed var(--line); border-radius:16px; opacity:.75; cursor:not-allowed; }
-  .soon .fbody strong { display:block; }
-  .soon .fbody span { display:block; font-size:14px; color:var(--muted); }
-  .soon .ficon { color:var(--muted); }
-
   /* Botões */
   .btn, button.primary {
     display:flex; align-items:center; justify-content:center; width:100%; min-height:56px; padding:0 20px;
@@ -160,6 +154,66 @@
   #sumOut { margin-top:12px; }
   @media (min-width:520px) { .dl { flex-direction:row; } .dl .btn { flex:1; } }
 
+  /* Cartão "Conversa do WhatsApp (.zip)" */
+  .zipcard { display:flex; align-items:center; gap:12px; width:100%; margin-top:12px; padding:14px; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:inherit; font:inherit; text-align:left; cursor:pointer; touch-action:manipulation; }
+  .zipcard:hover { border-color:var(--accent); }
+  .zipcard .ficon { color:var(--accent-text); }
+  .zipcard .fbody strong { display:block; }
+  .zipcard .fbody span { display:block; font-size:14px; color:var(--muted); }
+
+  /* Tela da conversa do WhatsApp */
+  .back { display:inline-flex; align-items:center; min-height:44px; margin:-8px 0 8px; padding:0 4px; background:none; border:0; color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer; }
+  .wa-head { padding:8px 8px 4px; }
+  .wa-head h2 { margin:0 0 4px; font-family:var(--font-display); font-weight:800; font-size:24px; letter-spacing:-0.02em; }
+  .wa-file { margin:0; color:var(--muted); font-size:14px; overflow-wrap:anywhere; }
+  .stats { display:flex; flex-wrap:wrap; gap:8px; margin:12px 8px 4px; padding:0; list-style:none; }
+  .stats li { padding:6px 12px; border-radius:999px; background:var(--sunken); border:1px solid var(--line); font-size:14px; font-variant-numeric:tabular-nums; }
+  .wa-line { margin:12px 8px 0; font-size:15px; color:var(--muted); overflow-wrap:anywhere; }
+  .wa-line strong { color:var(--text); }
+  .wa-box { margin:12px 0 0; padding:12px 14px; border-radius:12px; font-size:15px; }
+  .wa-box.warn { color:var(--err); background:var(--err-bg); }
+  .wa-box.info { color:var(--muted); background:var(--sunken); border:1px solid var(--line); }
+  .wa-box:empty { display:none; }
+  .wa-panel .opts { margin:12px 0 0; }
+  .btn.small { min-height:44px; font-size:15px; margin-top:10px; }
+
+  .filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
+  .filters .fld { position:relative; display:block; height:60px; border:1px solid var(--line); border-radius:14px; background:var(--sunken); overflow:hidden; }
+  .filters .fld.wide { grid-column:1 / -1; }
+  .filters .k { position:absolute; left:14px; top:7px; font-size:12px; color:var(--muted); pointer-events:none; }
+  .filters select, .filters input { position:absolute; inset:0; width:100%; height:100%; margin:0; padding:24px 12px 0 14px; border:0; background:transparent; color:var(--text); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; min-width:0; }
+  .filters .fld:focus-within { border-color:var(--accent); }
+  .filters input[type=search]::-webkit-search-cancel-button { margin-right:4px; }
+  .wlist { list-style:none; margin:0; padding:4px 0; max-height:min(60vh, 520px); overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:16px; -webkit-overflow-scrolling:touch; }
+  .wlist li { padding:10px 14px; }
+  .wlist li + li { border-top:1px solid var(--line); }
+  .wlist .meta { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .wlist .who { color:var(--text); font-weight:600; font-size:14px; }
+  .wlist .tag { padding:0 8px; border-radius:999px; border:1px solid var(--line-strong); color:var(--accent-text); font-size:12px; font-weight:600; }
+  .wlist .body { margin-top:2px; overflow-wrap:anywhere; white-space:pre-wrap; }
+  .wlist .empty { padding:18px 14px; color:var(--muted); text-align:center; }
+  .wlist .moreli { padding:6px 14px; }
+  .wlist .moreli button { width:100%; min-height:44px; border:0; border-radius:12px; background:transparent; color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer; }
+
+  /* Chat com o Reo */
+  .reo .lead { margin:0 8px 12px; color:var(--muted); font-size:15px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .chips button { min-height:44px; padding:0 14px; border:1.5px solid var(--line-strong); border-radius:999px; background:transparent; color:var(--accent-text); font:inherit; font-size:15px; cursor:pointer; touch-action:manipulation; }
+  .chips button:disabled { opacity:.5; cursor:not-allowed; }
+  .reolog { display:flex; flex-direction:column; gap:10px; max-height:min(60vh, 520px); overflow:auto; padding:2px; -webkit-overflow-scrolling:touch; }
+  .reolog:empty { display:none; }
+  .bub { max-width:92%; padding:10px 14px; border-radius:16px; overflow-wrap:anywhere; }
+  .bub.me { align-self:flex-end; background:var(--accent); color:var(--on-accent); border-bottom-right-radius:6px; white-space:pre-wrap; }
+  .bub.reo { align-self:flex-start; background:var(--sunken); border:1px solid var(--line); border-bottom-left-radius:6px; }
+  .bub.reo.err { color:var(--err); background:var(--err-bg); border-color:transparent; }
+  .bub.reo > :first-child { margin-top:0; } .bub.reo > :last-child { margin-bottom:0; }
+  .bub.reo p, .bub.reo h4 { margin:8px 0; } .bub.reo ul, .bub.reo ol { margin:8px 0; padding-left:22px; }
+  .bub.reo h4 { font-family:var(--font-display); font-size:16px; }
+  .reoform { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .reoform textarea { width:100%; min-height:64px; max-height:160px; resize:vertical; padding:12px 14px; font:inherit; font-size:16px; line-height:1.4; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:14px; }
+  .reoform button.primary { margin-top:0; }
+  .note { margin:12px 8px 0; font-size:13px; color:var(--muted); }
+
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; scroll-behavior:auto !important; } }
 </style>
 </head>
@@ -175,6 +229,7 @@
     <span class="word">Transcriby</span>
   </header>
 
+  <div id="home">
   <h1>Do vídeo para o texto</h1>
   <p class="sub">Envie um áudio ou vídeo e receba o texto completo, pronto para copiar e colar numa IA para pesquisar ou achar o que você precisa.</p>
 
@@ -213,13 +268,13 @@
       </details>
     </div>
 
-    <div class="soon" id="soonZip" aria-disabled="true">
+    <button type="button" class="zipcard" id="zipBtn">
       <span class="ficon" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M12 10v1M12 13v1M12 16v1"/></svg>
       </span>
-      <span class="fbody"><strong>Conversa em ZIP</strong><span>Envie a conversa exportada: separamos áudios e textos e resumimos quem disse o quê.</span></span>
-      <span class="badge">Em breve</span>
-    </div>
+      <span class="fbody"><strong>Conversa do WhatsApp (.zip)</strong><span>Envie a conversa exportada: transcrevemos áudios e vídeos, descrevemos fotos e organizamos tudo por data e pessoa.</span></span>
+    </button>
+    <input type="file" id="zipFile" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" hidden>
 
     <button class="primary" id="go" disabled>Transcrever</button>
 
@@ -263,15 +318,88 @@
       </div>
     </div>
   </section>
+  </div>
+
+  <section id="wa" hidden aria-label="Conversa do WhatsApp">
+    <button type="button" class="back" id="waBack">← Voltar</button>
+    <div class="panel wa-panel">
+      <div class="wa-head">
+        <h2>Conversa do WhatsApp</h2>
+        <p class="wa-file" id="waFile"></p>
+      </div>
+      <ul class="stats" id="waStats"></ul>
+      <p class="wa-line" id="waPeople"></p>
+      <p class="wa-line" id="waAudio"></p>
+      <div class="wa-box warn" id="waWarn" role="alert"></div>
+      <div class="opts">
+        <label class="opt"><span class="k">Idioma dos áudios</span>
+          <select id="waLang">
+            <option value="portuguese" selected>Português</option>
+            <option value="">Detectar automaticamente</option>
+            <option value="english">Inglês</option>
+            <option value="spanish">Espanhol</option>
+          </select>
+        </label>
+      </div>
+      <div class="wa-box info" id="waInfo">Áudios, o áudio dos vídeos e as fotos são enviados para serem transcritos e descritos. Vídeos não são enviados: só a fala deles. As mensagens de texto só saem deste aparelho se você conversar com o Reo.</div>
+      <button class="primary" id="waGo" disabled>Processar conversa</button>
+      <button type="button" class="btn alt small" id="waStop" hidden>Parar</button>
+      <div class="status">
+        <div class="track" id="waTrack" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="waFill"></div></div>
+        <div id="waMsg" role="status"></div>
+        <p class="keep">Mantenha esta tela aberta até terminar.</p>
+      </div>
+    </div>
+
+    <section class="result" id="waResult" hidden aria-labelledby="wrt">
+      <div class="rhead"><h2 id="wrt">Conversa organizada</h2><span id="waCount"></span></div>
+      <div class="filters">
+        <label class="fld wide"><span class="k">Pessoa</span>
+          <select id="fSender"><option value="">Todas as pessoas</option></select>
+        </label>
+        <label class="fld"><span class="k">De</span><input type="date" id="fFrom"></label>
+        <label class="fld"><span class="k">Até</span><input type="date" id="fTo"></label>
+        <label class="fld wide"><span class="k">Buscar na conversa</span><input type="search" id="fQ" autocomplete="off" enterkeyhint="search"></label>
+      </div>
+      <ol class="wlist" id="waList"></ol>
+      <div class="dl">
+        <button type="button" id="waCopy" class="btn save">Copiar texto</button>
+      </div>
+      <div class="dl">
+        <button type="button" id="waMd" class="btn alt">Exportar (.md)</button>
+        <button type="button" id="waMdAll" class="btn alt" hidden>Exportar tudo (.md)</button>
+      </div>
+      <div class="wa-box warn" id="waFail" role="alert"></div>
+      <button type="button" class="btn alt small" id="waRetry" hidden>Tentar de novo os que falharam</button>
+    </section>
+
+    <section class="result reo" id="reo" hidden aria-labelledby="reot">
+      <div class="rhead"><h2 id="reot">Converse com o Reo</h2></div>
+      <p class="lead">O Reo é a IA do Transcriby. Ele responde só sobre esta conversa: resumos, buscas, quem disse o quê.</p>
+      <div class="chips" id="reoChips">
+        <button type="button" data-q="Resuma a conversa.">Resumir a conversa</button>
+        <button type="button" data-q="Quais assuntos foram tratados? Liste em ordem cronológica.">Assuntos</button>
+        <button type="button" data-q="Quais foram os combinados, pedidos e prazos citados?">Combinados e prazos</button>
+      </div>
+      <div class="reolog" id="reoLog" aria-live="polite"></div>
+      <form class="reoform" id="reoForm">
+        <textarea id="reoIn" rows="2" maxlength="4000" placeholder="Pergunte algo sobre a conversa…" aria-label="Pergunta ao Reo"></textarea>
+        <button class="primary" id="reoSend" type="submit">Enviar</button>
+      </form>
+      <p class="note">O Reo pode errar. Transcrições e descrições automáticas não são cópia perfeita do original.</p>
+    </section>
+  </section>
 </main>
 <script type="module">
 import { toSrt, toPrettyText } from "./srt.js";
-import { transcribeWithGemini, summarize, NeedKey } from "./gemini.js";
-import { GEMINI_URL } from "./config.js";
+import { transcribeWithGemini, summarize, askReo, NeedKey } from "./gemini.js";
+import { GEMINI_URL, MAX_AUDIO_HOURS } from "./config.js";
 import { decodeToMono16k } from "./audio.js";
+import { parseChat, applyFilters, hasFilters, formatLine, lineContent, toTranscript, toMarkdown, brDate, fmtDuration, TYPE_LABEL } from "./whatsapp.js";
+import { openChatZip, measureAudio, processMedia } from "./media.js";
 const $ = id => document.getElementById(id);
 const GO = 'Transcrever', RETRY = 'Tentar de novo', WORK = 'Transcrevendo…';
-let file = null, text = '', urls = [], sumUrl = '';
+let file = null, waFile = null, text = '', urls = [], sumUrl = '';
 const label = t => { $('go').textContent = t; };
 const busy = b => document.body.classList.toggle('busy', b);
 
@@ -280,13 +408,13 @@ const KEY = 'transcriby_etapa';
 let lastEtapa = '';
 const mark = etapa => {
   if (etapa === lastEtapa) return; lastEtapa = etapa;
-  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: file ? Math.round(file.size / 1048576) : 0 })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: (file || waFile) ? Math.round((file || waFile).size / 1048576) : 0 })); } catch (_) {}
 };
 const unmark = () => { lastEtapa = ''; try { localStorage.removeItem(KEY); } catch (_) {} };
 try {
   const last = JSON.parse(localStorage.getItem(KEY) || 'null');
   if (last && Date.now() - last.t < 30 * 60 * 1000) {
-    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB). Provavelmente faltou memória no navegador. Tente enviar só o áudio (M4A ou MP3).`;
+    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB). Provavelmente faltou memória no navegador. Tente um arquivo menor (áudio ou vídeo: envie só o áudio em M4A ou MP3; conversa do WhatsApp: exporte um período menor).`;
     $('msg').classList.add('err');
   }
   localStorage.removeItem(KEY);
@@ -308,10 +436,11 @@ const pick = f => {
 };
 $('drop').onclick = () => $('file').click();
 $('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
-$('file').onchange = e => e.target.files[0] && pick(e.target.files[0]);
+const isZip = f => /\.zip$/i.test(f.name) || /zip/i.test(f.type);
+$('file').onchange = e => e.target.files[0] && (isZip(e.target.files[0]) ? openWa(e.target.files[0]) : pick(e.target.files[0]));
 ['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]));
+$('drop').addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) isZip(f) ? openWa(f) : pick(f); });
 
 const blobUrl = (content, type) => URL.createObjectURL(new Blob([content], { type: type + ';charset=utf-8' }));
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -410,6 +539,230 @@ $('sumGo').onclick = async () => {
   btn.disabled = false;
 };
 $('sumCopy').onclick = () => copyFrom($('sumOut'), $('sumCopy'), 'Copiar resumo');
+
+// ===================== Conversa do WhatsApp (.zip) =====================
+const REO_LIMIT_CHARS = 3_000_000;   // mesmo limite do servidor
+let wa = null;       // { zip, parsed, messages, name, measured }
+let ctl = { stop: false };
+let waShown = [], waLimit = 300, reoBusy = false;
+const reoHistory = [];
+const wset = (p, m, err) => {
+  $('waFill').style.width = p + '%'; $('waTrack').setAttribute('aria-valuenow', Math.round(p));
+  $('waMsg').textContent = m; $('waMsg').classList.toggle('err', !!err);
+};
+const showWa = on => { $('home').hidden = on; $('wa').hidden = !on; window.scrollTo(0, 0); };
+$('zipBtn').onclick = () => $('zipFile').click();
+$('zipFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; f && openWa(f); };
+$('waBack').onclick = () => {
+  ctl.stop = true; busy(false);
+  if (wa && wa.zip) wa.zip.close().catch(() => {});
+  wa = null; waFile = null; unmark(); showWa(false);
+};
+
+async function openWa(f) {
+  waFile = f; wa = null; ctl = { stop: false }; reoHistory.length = 0;
+  showWa(true);
+  $('waFile').textContent = f.name + ' · ' + fmtSize(f.size);
+  $('waStats').innerHTML = ''; $('waPeople').textContent = ''; $('waAudio').textContent = ''; $('waWarn').textContent = '';
+  $('waResult').hidden = true; $('reo').hidden = true; $('reoLog').innerHTML = '';
+  $('waGo').disabled = true; $('waGo').hidden = false; $('waGo').textContent = 'Processar conversa'; $('waStop').hidden = true;
+  busy(true);
+  try {
+    wset(2, 'Abrindo o .zip…'); mark('abrindo o zip');
+    const zip = await openChatZip(f);
+    const parsed = parseChat(zip.text, zip.paths);
+    if (!parsed.messages.length) throw new Error('não reconheci nenhuma mensagem no arquivo de texto (o formato da conversa é diferente do esperado)');
+    wa = { zip, parsed, messages: parsed.messages, name: f.name.replace(/\.zip$/i, '') || 'conversa', measured: null };
+    renderWaSummary();
+    wset(5, 'Medindo o tempo de áudio…'); mark('medindo o áudio');
+    const m = await measureAudio(zip, wa.messages, (i, n) => wset(5 + Math.round(20 * i / Math.max(n, 1)), `Medindo o tempo de áudio… ${i} de ${n}`));
+    wa.measured = m; unmark();
+    const limitSec = MAX_AUDIO_HOURS * 3600;
+    $('waAudio').innerHTML = '';
+    const strong = document.createElement('strong'); strong.textContent = fmtDuration(m.totalSec);
+    $('waAudio').append('Áudio a transcrever (áudios + fala dos vídeos): ', strong, (m.estimated ? ' (estimado)' : '') + `. Limite por envio: ${MAX_AUDIO_HOURS} h.`);
+    busy(false); wset(0, '');
+    if (m.totalSec > limitSec) {
+      $('waWarn').textContent = `Esta conversa tem ${fmtDuration(m.totalSec)} de áudio, acima do limite de ${MAX_AUDIO_HOURS} h por envio. Nada foi processado. Exporte a conversa de um período menor e envie de novo.`;
+      $('waGo').hidden = true;
+      return;
+    }
+    const todo = wa.messages.filter(x => x.status === 'pending').length;
+    if (!todo) { renderWaResult(true); $('waGo').hidden = true; return; }
+    $('waGo').disabled = false;
+  } catch (e) {
+    unmark(); busy(false); wset(0, 'Não consegui abrir a conversa: ' + (e.message || e) + '.', true);
+  }
+}
+
+function renderWaSummary() {
+  const { parsed } = wa, c = parsed.counts, li = t => { const x = document.createElement('li'); x.textContent = t; $('waStats').append(x); };
+  const n = (k, one, many) => c[k] ? li(`${c[k].toLocaleString('pt-BR')} ${c[k] === 1 ? one : many}`) : 0;
+  li(`${parsed.messages.length.toLocaleString('pt-BR')} ${parsed.messages.length === 1 ? 'mensagem' : 'mensagens'}`);
+  n('audio', 'áudio', 'áudios'); n('video', 'vídeo', 'vídeos'); n('imagem', 'imagem', 'imagens');
+  const other = c.documento + c.figurinha + c.contato + c.outro;
+  if (other) li(`${other.toLocaleString('pt-BR')} outros anexos`);
+  const who = parsed.senders;
+  $('waPeople').textContent = (who.length ? `Participantes: ${who.slice(0, 8).join(', ')}${who.length > 8 ? ` e mais ${who.length - 8}` : ''}. ` : '') +
+    (parsed.firstDate ? `Período: ${brDate(parsed.firstDate)} a ${brDate(parsed.lastDate)}.` : '');
+}
+
+$('waStop').onclick = () => { ctl.stop = true; $('waStop').disabled = true; $('waStop').textContent = 'Parando…'; };
+$('waGo').onclick = () => runWa();
+$('waRetry').onclick = () => runWa();
+
+async function runWa() {
+  if (!wa) return;
+  ctl = { stop: false };
+  const language = $('waLang').value;
+  $('waGo').disabled = true; $('waRetry').disabled = true; $('waStop').hidden = false; $('waStop').disabled = false; $('waStop').textContent = 'Parar';
+  busy(true); mark('processando as mídias');
+  const onProgress = (done, total) => wset(total ? 100 * done / total : 100, `Processando as mídias… ${done} de ${total}`);
+  try {
+    onProgress(0, 1);
+    const r = await withKey(key => processMedia(wa.zip, wa.messages, { url: GEMINI_URL, language, key, onProgress, control: ctl }));
+    unmark(); busy(false);
+    wset(0, r.stopped ? 'Processamento interrompido. O que já ficou pronto está abaixo; aperte "Processar conversa" para continuar.' : '');
+    $('waGo').hidden = !r.stopped; $('waGo').textContent = 'Continuar processamento';
+  } catch (e) {
+    unmark(); busy(false); wset(0, 'Erro ao processar: ' + (e.message || e) + '. O que já ficou pronto está abaixo.', true);
+    $('waGo').hidden = false; $('waGo').textContent = RETRY;
+  }
+  $('waGo').disabled = false; $('waRetry').disabled = false; $('waStop').hidden = true;
+  renderWaResult($('waResult').hidden);   // refaz a lista sem perder os filtros já usados
+}
+
+const filters = () => ({ sender: $('fSender').value, from: $('fFrom').value, to: $('fTo').value, q: $('fQ').value });
+
+function renderWaResult(first) {
+  const { parsed, messages } = wa;
+  if (first) {
+    const sel = $('fSender'); sel.length = 1; sel.value = '';
+    parsed.senders.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.append(o); });
+    $('fFrom').min = $('fTo').min = parsed.firstDate; $('fFrom').max = $('fTo').max = parsed.lastDate;
+    $('fFrom').value = $('fTo').value = $('fQ').value = '';
+  }
+  const failed = messages.filter(m => m.status === 'error').length;
+  $('waFail').textContent = failed ? `${failed} ${failed === 1 ? 'item não pôde' : 'itens não puderam'} ser processado${failed === 1 ? '' : 's'} (aparece${failed === 1 ? '' : 'm'} marcado${failed === 1 ? '' : 's'} na conversa).` : '';
+  $('waRetry').hidden = !failed;
+  $('waResult').hidden = false; $('reo').hidden = false;
+  refreshWa();
+  if (first) $('waResult').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+}
+
+function refreshWa(keepLimit) {
+  if (!wa) return;
+  if (!keepLimit) waLimit = 300;
+  const f = filters(), on = hasFilters(f);
+  waShown = applyFilters(wa.messages, f);
+  const total = wa.messages.length;
+  $('waCount').textContent = on ? `${waShown.length.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')}` : `${total.toLocaleString('pt-BR')} ${total === 1 ? 'mensagem' : 'mensagens'}`;
+  const ol = $('waList'); ol.textContent = '';
+  if (!waShown.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Nenhuma mensagem com esses filtros.'; ol.append(li); }
+  const frag = document.createDocumentFragment();
+  for (const m of waShown.slice(0, waLimit)) {
+    const li = document.createElement('li');
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const t = document.createElement('time'); t.textContent = `${brDate(m.date)} ${m.time}`;
+    const who = document.createElement('span'); who.className = 'who'; who.textContent = m.sender;
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = TYPE_LABEL[m.kind] || m.kind;
+    meta.append(t, who, tag);
+    const body = document.createElement('div'); body.className = 'body'; body.textContent = lineContent(m);
+    li.append(meta, body); frag.append(li);
+  }
+  if (waShown.length > waLimit) {
+    const li = document.createElement('li'); li.className = 'moreli';
+    const b = document.createElement('button'); b.type = 'button';
+    b.textContent = `Mostrar mais (${(waShown.length - waLimit).toLocaleString('pt-BR')} restantes)`;
+    b.onclick = () => { waLimit += 400; refreshWa(true); };
+    li.append(b); frag.append(li);
+  }
+  ol.append(frag);
+  $('waMd').textContent = on ? 'Exportar o filtrado (.md)' : 'Exportar (.md)';
+  $('waMdAll').hidden = !on;
+  $('waCopy').textContent = on ? 'Copiar texto filtrado' : 'Copiar texto';
+}
+['fSender', 'fFrom', 'fTo'].forEach(id => $(id).addEventListener('change', () => refreshWa()));
+$('fQ').addEventListener('input', () => refreshWa());
+
+const downloadText = (name, content, type) => {
+  const url = blobUrl(content, type), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
+const exportMd = all => {
+  const f = all ? {} : filters(), list = all ? wa.messages : waShown;
+  downloadText(wa.name + (hasFilters(f) ? '-filtrado' : '') + '.md',
+    toMarkdown(list, { fileName: waFile.name, total: wa.messages.length, filters: f, senders: wa.parsed.senders }), 'text/markdown');
+};
+$('waMd').onclick = () => exportMd(false);
+$('waMdAll').onclick = () => exportMd(true);
+$('waCopy').onclick = async () => {
+  const t = waShown.map(formatLine).join('\n'), b = $('waCopy'), idle = b.textContent;
+  try { await navigator.clipboard.writeText(t); } catch (_) { const a = document.createElement('textarea'); a.value = t; document.body.append(a); a.select(); document.execCommand('copy'); a.remove(); }
+  b.textContent = 'Copiado!'; setTimeout(() => { b.textContent = idle; }, 2000);
+};
+
+// ----- Chat com o Reo: só texto; o único contexto enviado é a transcrição deste arquivo -----
+let sessionId = '';
+try { sessionId = sessionStorage.getItem('transcriby_sessao') || ''; } catch (_) {}
+if (!sessionId) {
+  sessionId = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  try { sessionStorage.setItem('transcriby_sessao', sessionId); } catch (_) {}
+}
+
+// Mostra a resposta com títulos, listas e negrito simples, sem aceitar HTML.
+function rich(el, text) {
+  el.textContent = '';
+  const inline = (parent, s) => s.split(/(\*\*[^*]+\*\*)/).forEach(part => {
+    if (/^\*\*[^*]+\*\*$/.test(part)) { const b = document.createElement('strong'); b.textContent = part.slice(2, -2); parent.append(b); }
+    else if (part) parent.append(part);
+  });
+  let list = null, kind = '';
+  for (const line of String(text).split('\n')) {
+    const t = line.trimEnd(); let m;
+    if (!t.trim()) { list = null; continue; }
+    if ((m = t.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/))) {
+      const k = /\d/.test(m[1]) ? 'ol' : 'ul';
+      if (!list || kind !== k) { list = document.createElement(k); kind = k; el.append(list); }
+      const li = document.createElement('li'); inline(li, m[2]); list.append(li); continue;
+    }
+    list = null;
+    if ((m = t.match(/^#{1,6}\s+(.*)$/))) { const h = document.createElement('h4'); inline(h, m[1]); el.append(h); continue; }
+    const p = document.createElement('p'); inline(p, t.trim()); el.append(p);
+  }
+}
+const addBubble = (cls, text, isRich) => {
+  const d = document.createElement('div'); d.className = 'bub ' + cls;
+  if (isRich) rich(d, text); else d.textContent = text;
+  $('reoLog').append(d); d.scrollIntoView({ block: 'nearest' }); return d;
+};
+const setReoBusy = b => { reoBusy = b; $('reoSend').disabled = b; $('reoSend').textContent = b ? 'O Reo está lendo…' : 'Enviar'; $('reoChips').querySelectorAll('button').forEach(x => { x.disabled = b; }); };
+
+async function sendReo(message) {
+  message = message.trim();
+  if (!message || reoBusy || !wa) return;
+  const transcript = toTranscript(wa.messages);
+  if (transcript.length > REO_LIMIT_CHARS) { addBubble('reo err', 'Esta conversa é grande demais para o chat do Reo. Use os filtros e o .md exportado, ou envie um período menor.'); return; }
+  addBubble('me', message); $('reoIn').value = ''; setReoBusy(true);
+  const wait = addBubble('reo', 'Lendo a conversa…');
+  try {
+    const reply = await withKey(key => askReo({ message, history: reoHistory.slice(-16), transcript }, { url: GEMINI_URL, key, session: sessionId }));
+    wait.remove();
+    const out = reply || 'Não consegui responder agora. Tente reformular a pergunta.';
+    addBubble('reo', out, true);
+    reoHistory.push({ role: 'user', text: message }, { role: 'model', text: out });
+  } catch (e) {
+    wait.remove(); addBubble('reo err', 'Não consegui responder: ' + (e.message || e));
+  }
+  setReoBusy(false);
+}
+$('reoForm').onsubmit = e => { e.preventDefault(); sendReo($('reoIn').value); };
+$('reoChips').addEventListener('click', e => { const b = e.target.closest('button[data-q]'); if (b) sendReo(b.dataset.q); });
+$('reoIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && matchMedia('(hover:hover) and (pointer:fine)').matches) { e.preventDefault(); sendReo($('reoIn').value); } });
+// O chat só aceita texto: arquivos soltos ou colados na caixa são ignorados.
+$('reoIn').addEventListener('drop', e => e.preventDefault());
+$('reoIn').addEventListener('paste', e => { if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length) e.preventDefault(); });
 </script>
 </body>
 </html>

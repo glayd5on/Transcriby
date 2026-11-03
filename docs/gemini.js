@@ -69,21 +69,21 @@ export function placeSegments(raw, offset, partSeconds) {
   });
 }
 
-async function post(url, body, headers, key) {
+export async function post(url, body, headers, key, tries = 3) {
   let last;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < tries; attempt++) {
     try {
       const r = await fetch(url, { method: "POST", body, headers: { ...headers, "X-Access-Key": key || "" } });
       if (r.status === 401) throw new NeedKey("Código de acesso incorreto.");
       const j = await r.json().catch(() => ({}));
       if (r.ok) return j;
       last = new Error(j.error || `o servidor respondeu ${r.status}`);
-      if (r.status >= 400 && r.status < 500 && r.status !== 429) throw last;
+      if (r.status >= 400 && r.status < 500 && r.status !== 429) { last.noRetry = true; throw last; }   // erro do pedido: repetir não adianta
     } catch (e) {
-      if (e instanceof NeedKey) throw e;
+      if (e instanceof NeedKey || e.noRetry) throw e;
       last = e;
     }
-    await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
+    if (attempt + 1 < tries) await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
   }
   throw last;
 }
@@ -109,4 +109,23 @@ export async function transcribeWithGemini(audio, { url, language, key, onProgre
 export async function summarize(text, { url, language, size, key }) {
   const j = await post(`${url}?mode=summary`, JSON.stringify({ text, lang: language || "", size }), { "Content-Type": "application/json" }, key);
   return (j.summary || "").trim();
+}
+
+/** Transcreve um arquivo de áudio como ele é (sem converter), quando o navegador não consegue decodificá-lo. Devolve o texto. */
+export async function transcribeRaw(blob, mime, { url, language, key }) {
+  const j = await post(`${url}?lang=${encodeURIComponent(language || "")}`, blob, { "Content-Type": mime }, key);
+  return (j.segments ? j.segments.map(s => s.text).join(" ") : (j.text || "")).trim();
+}
+
+/** Descrição curta e objetiva de uma imagem (o servidor usa o modelo Flash-Lite). */
+export async function describeImage(blob, mime, { url, key }) {
+  const j = await post(`${url}?mode=image`, blob, { "Content-Type": mime || "image/jpeg" }, key);
+  return (j.text || "").trim();
+}
+
+/** Uma pergunta ao Reo. Só texto: pergunta, conversa anterior e a transcrição do arquivo atual. */
+export async function askReo({ message, history, transcript }, { url, key, session }) {
+  const j = await post(`${url}?mode=chat`, JSON.stringify({ message: String(message), history, transcript }),
+    { "Content-Type": "application/json", "X-Session-Id": session || "" }, key, 1);   // 1 tentativa: cada pergunta conta no limite do servidor
+  return (j.reply || "").trim();
 }

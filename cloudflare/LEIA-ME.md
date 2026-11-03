@@ -36,6 +36,35 @@ projeto e a conta de serviço com o papel **Vertex AI User**. A transcrição pa
 ## Observações
 
 - A chave do AI Studio tem cota grátis com limite por minuto e por dia. Para vídeos de 10 minutos de uso pessoal costuma bastar.
-- Modelo padrão: `gemini-2.5-flash`. Para outro, crie a variável `GEMINI_MODEL`.
+- Modelos (constantes no topo de `worker.js`): `MODEL_LITE` = `gemini-3.1-flash-lite` (transcrição de áudio e descrição de imagem) e
+  `MODEL_FLASH` = `gemini-3.8-flash` (chat do Reo e resumos, só quando a pessoa pede no site). Para trocar sem mexer no código,
+  crie as variáveis de texto `MODEL_LITE` e/ou `MODEL_FLASH`. Se o modelo não existir no seu projeto/região, o Worker tenta o
+  `MODEL_FALLBACK` (padrão `gemini-2.5-flash`). Modelos novos às vezes só existem na região `global`: use `VERTEX_LOCATION` = `global`.
+  A variável antiga `GEMINI_MODEL` não é mais usada.
 - O áudio vai para o Google durante a transcrição. O site não tem mais o modo "No navegador" (Whisper).
 - O Worker devolve os trechos com o tempo de início (`{segments: [{start: "MM:SS", text, paragraph}]}`); o site monta o texto em parágrafos e o SRT.
+
+## Importador do WhatsApp e chat do Reo
+
+O mesmo Worker atende:
+
+- `POST ?mode=image` (corpo = imagem): descrição curta da imagem (Flash-Lite).
+- `POST` com áudio (WAV, ou `audio/ogg`, `audio/mpeg`, `audio/mp4` etc.): transcrição (Flash-Lite).
+- `POST ?mode=chat` (JSON `{message, history, transcript}`): resposta do Reo (Flash). A instrução de sistema é fixa e fica em
+  `cloudflare/reo.js`; o site não consegue trocá-la. A transcrição entra só dentro de `<conversa></conversa>` (qualquer `<conversa>`
+  que apareça no texto é removida). O chat só aceita texto e só chama o modelo de texto.
+
+## Alerta de tentativas de descobrir o Reo (Telegram + KV)
+
+O código está em `cloudflare/guard.js` (números no objeto `CFG` do topo). Sem o KV e sem o Telegram o Worker funciona normalmente,
+só sem o alerta e com um freio mais fraco (na memória do Worker). Para ligar tudo:
+
+1. **Telegram:** fale com `@BotFather`, envie `/newbot` e guarde o token. Mande uma mensagem qualquer ao seu bot e abra
+   `https://api.telegram.org/botSEU_TOKEN/getUpdates` para ver o número do chat (campo `chat` > `id`).
+2. **KV:** no painel da Cloudflare, **Storage & Databases** > **KV** > **Create** com o nome `ABUSE_KV`. Copie o **ID** do namespace
+   e coloque em `wrangler.toml` (as 3 linhas comentadas no fim do arquivo; o ID não é segredo).
+3. **Segredos** (Worker > **Settings** > **Variables and Secrets**, tipo Secret): `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+4. O site já manda o `X-Session-Id` (um código por aba, guardado em `sessionStorage`).
+
+Regras: 5 tentativas suspeitas em 10 minutos (por IP ou por sessão) => alerta no Telegram e bloqueio do IP por 1 hora.
+Limite geral de 40 mensagens por IP em 10 minutos. O contador do KV não é atômico: em rajadas muito rápidas pode contar um pouco a menos.

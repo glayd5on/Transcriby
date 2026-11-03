@@ -6,6 +6,9 @@
 const OUT_RATE = 16000;
 const MB_URL = "https://cdn.jsdelivr.net/npm/mediabunny@1.61.3/+esm";
 
+/** O arquivo (por exemplo um vídeo) não tem faixa de áudio: não há fala para transcrever. */
+export class NoAudio extends Error {}
+
 // Reamostragem por média ponderada, aos poucos (a memória não cresce com o tamanho do arquivo de entrada).
 export function makeResampler(inRate, outRate = OUT_RATE) {
   const ratio = inRate / outRate;
@@ -60,7 +63,7 @@ async function decodeStreaming(file, onProgress) {
   const { Input, BlobSource, ALL_FORMATS, AudioBufferSink } = await import(MB_URL);
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
   const track = await input.getPrimaryAudioTrack();
-  if (!track) throw new Error("o arquivo não tem faixa de áudio");
+  if (!track) throw new NoAudio("o arquivo não tem faixa de áudio");
   if (!(await track.canDecode())) throw new Error("este navegador não decodifica o áudio desse arquivo");
   let duration = 0;
   try { duration = await input.computeDuration(); } catch (_) { /* sem duração, só não mostra o progresso */ }
@@ -101,6 +104,7 @@ export async function decodeToMono16k(file, onProgress) {
   try {
     return await decodeStreaming(file, onProgress);
   } catch (e) {
+    if (e instanceof NoAudio) throw e;
     first = e;
     console.warn("Leitura por partes falhou, tentando o método antigo:", e);
   }
@@ -110,5 +114,23 @@ export async function decodeToMono16k(file, onProgress) {
     const a = (first && (first.message || first)) || "";
     const b = e && (e.message || e) || "";
     throw new Error(a && b ? `${b}; antes: ${a}` : (b || a));
+  }
+}
+
+/**
+ * Lê só o início do arquivo (sem decodificar o áudio) para saber a duração e se há faixa de áudio.
+ * Devolve { duration (segundos, ou null se não deu para ler), hasAudio (true/false, ou null se não deu para ler) }.
+ */
+export async function probeMedia(file) {
+  try {
+    const { Input, BlobSource, ALL_FORMATS } = await import(MB_URL);
+    const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
+    const track = await input.getPrimaryAudioTrack();
+    if (!track) return { duration: 0, hasAudio: false };
+    let duration = null;
+    try { duration = await input.computeDuration(); } catch (_) { /* sem duração */ }
+    return { duration: Number.isFinite(duration) ? duration : null, hasAudio: true };
+  } catch (_) {
+    return { duration: null, hasAudio: null };
   }
 }
