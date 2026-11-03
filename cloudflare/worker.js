@@ -124,9 +124,14 @@ function endpoint(env, model, sa) {
 }
 
 // Modelos da família 2.x aceitam temperatura 0; nos 3.x o Google recomenda deixar o padrão.
+// fast: true = pouco "raciocínio" (respostas bem mais rápidas, bom para perguntas sobre um texto que já está no pedido).
+// 2.5 aceita orçamento de raciocínio 0; 3.x usa níveis ("low").
 const configFor = (model, cfg) => {
-  const { temperature, ...rest } = cfg || {};
-  return /^gemini-2/.test(model) && temperature !== undefined ? { ...rest, temperature } : rest;
+  const { temperature, fast, ...rest } = cfg || {};
+  const out = /^gemini-2/.test(model) && temperature !== undefined ? { ...rest, temperature } : rest;
+  if (fast) out.thinkingConfig = /^gemini-2\.5/.test(model) ? { thinkingBudget: 0 } : /^gemini-3/.test(model) ? { thinkingLevel: "low" } : undefined;
+  if (out.thinkingConfig === undefined) delete out.thinkingConfig;
+  return out;
 };
 const isModelMissing = (status, msg) => status === 404 || /not found|does not exist|not supported|unsupported/i.test(msg || "");
 
@@ -146,8 +151,15 @@ async function callGemini(env, sa, parts, generationConfig, { model, systemInstr
       generationConfig: configFor(m, generationConfig),
     };
     if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
-    const r = await fetch(ep.url, { method: "POST", headers: { ...headers0, ...(ep.headers || {}) }, body: JSON.stringify(body) });
-    const data = await r.json().catch(() => ({}));
+    const send = (b) => fetch(ep.url, { method: "POST", headers: { ...headers0, ...(ep.headers || {}) }, body: JSON.stringify(b) });
+    let r = await send(body);
+    let data = await r.json().catch(() => ({}));
+    // Se o modelo recusar a configuração de raciocínio, tenta de novo sem ela (melhor lento do que falhar).
+    if (!r.ok && body.generationConfig.thinkingConfig && /think/i.test(data.error?.message || "")) {
+      delete body.generationConfig.thinkingConfig;
+      r = await send(body);
+      data = await r.json().catch(() => ({}));
+    }
     if (r.ok) return { text: (data.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || "").join("").trim(), model: m };
     const msg = data.error?.message || `Gemini respondeu ${r.status}`;
     last = { error: msg, status: r.status === 429 ? 429 : 502 };
@@ -214,7 +226,7 @@ export default {
       while (history.length && history[0].role !== "user") history.shift();
       const contents = [...history, { role: "user", parts: [{ text: message }] }];
 
-      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192 }, { model: flash, systemInstruction: buildReoSystem(transcript), contents });
+      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: flash, systemInstruction: buildReoSystem(transcript), contents });
       if (out.error) return json({ error: out.error }, out.status, h);
       return json({ reply: out.text || "Não consegui responder agora. Tente reformular a pergunta." }, 200, h);
     }
