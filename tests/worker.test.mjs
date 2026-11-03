@@ -203,4 +203,25 @@ test("se o modelo recusar a configuração de raciocínio, repete o pedido sem e
   assert.equal("thinkingConfig" in sent[1].body.generationConfig, false);
 });
 
+test("chat com stream:true devolve o texto aos poucos (sem os pensamentos) e erros continuam em JSON", async () => {
+  reset();
+  const prev = globalThis.fetch;
+  const sse = (t, thought) => `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: t, ...(thought ? { thought: true } : {}) }] } }] })}\r\n\r\n`;
+  globalThis.fetch = async (url, init) => {
+    sent.push({ url: String(url), body: JSON.parse(init.body) });
+    const enc = new TextEncoder(), parts = [sse("pensando", true), sse("Olá, "), sse("mundo").slice(0, 20), sse("mundo").slice(20)];
+    return new Response(new ReadableStream({ start(c) { parts.forEach(p => c.enqueue(enc.encode(p))); c.close(); } }), { status: 200, headers: { "Content-Type": "text/event-stream" } });
+  };
+  const r = await worker.fetch(chat("oi", undefined, { stream: true }), mkEnv(), ctx);
+  globalThis.fetch = prev;
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get("Content-Type"), /text\/plain/);
+  assert.equal(await r.text(), "Olá, mundo");
+  assert.match(sent[0].url, /streamGenerateContent\?alt=sse/);
+  // sem stream:true o formato antigo (JSON) continua igual
+  reset();
+  const r2 = await worker.fetch(chat("oi"), mkEnv(), ctx);
+  assert.equal((await r2.json()).reply, "resposta");
+});
+
 test.after(() => { globalThis.fetch = realFetch; });

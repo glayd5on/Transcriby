@@ -746,14 +746,18 @@ async function sendReo(message) {
   if (transcript.length > REO_LIMIT_CHARS) { addBubble('reo err', 'Esta conversa é grande demais para o chat do Reo. Use os filtros e o .md exportado, ou envie um período menor.'); return; }
   addBubble('me', message); $('reoIn').value = ''; setReoBusy(true);
   const wait = addBubble('reo', 'Lendo a conversa…');
+  let started = false;
   try {
-    const reply = await withKey(key => askReo({ message, history: reoHistory.slice(-16), transcript }, { url: GEMINI_URL, key, session: sessionId }));
-    wait.remove();
+    const reply = await withKey(key => askReo({ message, history: reoHistory.slice(-16), transcript }, {
+      url: GEMINI_URL, key, session: sessionId,
+      onText: t => { if (t) { started = true; rich(wait, t); wait.scrollIntoView({ block: 'nearest' }); } },   // a resposta aparece aos poucos
+    }));
     const out = reply || 'Não consegui responder agora. Tente reformular a pergunta.';
-    addBubble('reo', out, true);
+    rich(wait, out);
     reoHistory.push({ role: 'user', text: message }, { role: 'model', text: out });
   } catch (e) {
-    wait.remove(); addBubble('reo err', 'Não consegui responder: ' + (e.message || e));
+    if (!started) wait.remove();
+    addBubble('reo err', 'Não consegui responder: ' + (e.message || e));
   }
   setReoBusy(false);
 }

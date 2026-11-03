@@ -11,7 +11,7 @@
 //   áudio (corpo binário, WAV por padrão)  -> { segments: [{ start: "MM:SS", text, paragraph }], text }
 //   ?mode=image (corpo = imagem)           -> { text } (descrição curta)
 //   ?mode=summary (corpo JSON {text})      -> { summary }
-//   ?mode=chat (corpo JSON {message, history, transcript}) -> { reply }   (Reo)
+//   ?mode=chat (corpo JSON {message, history, transcript}) -> { reply }   (Reo); com "stream": true devolve o texto aos poucos (text/plain)
 
 import { buildReoSystem } from "./reo.js";
 import { guardChat, guardStatus, guardTelegramTest } from "./guard.js";
@@ -116,11 +116,34 @@ async function vertexToken(sa) {
   return tokenCache.token;
 }
 
-function endpoint(env, model, sa) {
-  if (!sa) return { url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, headers: { "x-goog-api-key": env.GEMINI_API_KEY } };
+function endpoint(env, model, sa, stream) {
+  const method = stream ? "streamGenerateContent?alt=sse" : "generateContent";
+  if (!sa) return { url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`, headers: { "x-goog-api-key": env.GEMINI_API_KEY } };
   const loc = env.VERTEX_LOCATION || "us-central1";
   const host = loc === "global" ? "aiplatform.googleapis.com" : `${loc}-aiplatform.googleapis.com`;
-  return { url: `https://${host}/v1/projects/${sa.project_id}/locations/${loc}/publishers/google/models/${model}:generateContent` };
+  return { url: `https://${host}/v1/projects/${sa.project_id}/locations/${loc}/publishers/google/models/${model}:${method}` };
+}
+
+// Converte a resposta em eventos (SSE) do Gemini num fluxo só de texto (os pedaços da resposta, sem os "pensamentos").
+function textStream(upstream) {
+  const dec = new TextDecoder(), enc = new TextEncoder();
+  let buf = "";
+  const emit = (line, controller) => {
+    if (!line.startsWith("data:")) return;
+    try {
+      const d = JSON.parse(line.slice(5));
+      const t = (d.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || "").join("");
+      if (t) controller.enqueue(enc.encode(t));
+    } catch (_) { /* pedaço incompleto ou sem texto: ignora */ }
+  };
+  return upstream.pipeThrough(new TransformStream({
+    transform(chunk, controller) {
+      buf += dec.decode(chunk, { stream: true });
+      const lines = buf.split("\n"); buf = lines.pop();
+      for (const l of lines) emit(l.trim(), controller);
+    },
+    flush(controller) { if (buf.trim()) emit(buf.trim(), controller); },
+  }));
 }
 
 // Modelos da família 2.x aceitam temperatura 0; nos 3.x o Google recomenda deixar o padrão.
@@ -135,7 +158,7 @@ const configFor = (model, cfg) => {
 };
 const isModelMissing = (status, msg) => status === 404 || /not found|does not exist|not supported|unsupported/i.test(msg || "");
 
-async function callGemini(env, sa, parts, generationConfig, { model, systemInstruction, contents } = {}) {
+async function callGemini(env, sa, parts, generationConfig, { model, systemInstruction, contents, stream } = {}) {
   const main = model || env.MODEL_FLASH || MODEL_FLASH;
   const fallback = env.MODEL_FALLBACK || MODEL_FALLBACK;
   const headers0 = { "Content-Type": "application/json" };
@@ -145,7 +168,7 @@ async function callGemini(env, sa, parts, generationConfig, { model, systemInstr
   }
   let last;
   for (const m of main === fallback ? [main] : [main, fallback]) {
-    const ep = endpoint(env, m, sa);
+    const ep = endpoint(env, m, sa, stream);
     const body = {
       contents: contents || [{ role: "user", parts }],
       generationConfig: configFor(m, generationConfig),
@@ -153,11 +176,14 @@ async function callGemini(env, sa, parts, generationConfig, { model, systemInstr
     if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
     const send = (b) => fetch(ep.url, { method: "POST", headers: { ...headers0, ...(ep.headers || {}) }, body: JSON.stringify(b) });
     let r = await send(body);
+    // Resposta em fluxo: se começou bem, devolve o fluxo de texto; erros chegam como JSON antes de começar.
+    if (stream && r.ok && r.body) return { stream: textStream(r.body), model: m };
     let data = await r.json().catch(() => ({}));
     // Se o modelo recusar a configuração de raciocínio, tenta de novo sem ela (melhor lento do que falhar).
     if (!r.ok && body.generationConfig.thinkingConfig && /think/i.test(data.error?.message || "")) {
       delete body.generationConfig.thinkingConfig;
       r = await send(body);
+      if (stream && r.ok && r.body) return { stream: textStream(r.body), model: m };
       data = await r.json().catch(() => ({}));
     }
     if (r.ok) return { text: (data.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || "").join("").trim(), model: m };
@@ -226,8 +252,10 @@ export default {
       while (history.length && history[0].role !== "user") history.shift();
       const contents = [...history, { role: "user", parts: [{ text: message }] }];
 
-      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: flash, systemInstruction: buildReoSystem(transcript), contents });
+      const wantStream = body.stream === true;
+      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: flash, systemInstruction: buildReoSystem(transcript), contents, stream: wantStream });
       if (out.error) return json({ error: out.error }, out.status, h);
+      if (out.stream) return new Response(out.stream, { status: 200, headers: { ...h, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
       return json({ reply: out.text || "Não consegui responder agora. Tente reformular a pergunta." }, 200, h);
     }
 
