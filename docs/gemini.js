@@ -123,9 +123,32 @@ export async function describeImage(blob, mime, { url, key }) {
   return (j.text || "").trim();
 }
 
-/** Uma pergunta ao Reo. Só texto: pergunta, conversa anterior e a transcrição do arquivo atual. */
-export async function askReo({ message, history, transcript }, { url, key, session }) {
-  const j = await post(`${url}?mode=chat`, JSON.stringify({ message: String(message), history, transcript }),
-    { "Content-Type": "application/json", "X-Session-Id": session || "" }, key, 1);   // 1 tentativa: cada pergunta conta no limite do servidor
-  return (j.reply || "").trim();
+/** Uma pergunta ao Reo. Só texto: pergunta, conversa anterior e a transcrição do arquivo atual.
+ *  Com onText, a resposta chega aos poucos: onText(textoAteAgora) é chamado a cada pedaço. Devolve o texto final. */
+export async function askReo({ message, history, transcript }, { url, key, session, onText }) {
+  const headers = { "Content-Type": "application/json", "X-Session-Id": session || "" };
+  if (!onText) {
+    const j = await post(`${url}?mode=chat`, JSON.stringify({ message: String(message), history, transcript }), headers, key, 1);   // 1 tentativa: cada pergunta conta no limite do servidor
+    return (j.reply || "").trim();
+  }
+  const r = await fetch(`${url}?mode=chat`, { method: "POST", headers: { ...headers, "X-Access-Key": key || "" }, body: JSON.stringify({ message: String(message), history, transcript, stream: true }) });
+  if (r.status === 401) throw new NeedKey("Código de acesso incorreto.");
+  const ct = r.headers.get("Content-Type") || "";
+  if (!r.ok || ct.includes("application/json")) {   // erro, bloqueio ou servidor sem suporte a fluxo: vem como JSON
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || `o servidor respondeu ${r.status}`);
+    const t = (j.reply || "").trim(); onText(t); return t;
+  }
+  if (!r.body) { const t = (await r.text()).trim(); onText(t); return t; }
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let acc = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    acc += dec.decode(value, { stream: true });
+    onText(acc);
+  }
+  acc += dec.decode();
+  onText(acc);
+  return acc.trim();
 }
