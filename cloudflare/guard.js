@@ -70,14 +70,41 @@ async function sendTelegram(env, text) {
   }
 }
 
-/** Diagnóstico sem segredos: só diz se cada peça está ligada e o resultado do último aviso. */
+export const GUARD_VERSION = "2026-11-03.2";
+
+// Guarda uma linha curta (sem IP e sem texto das mensagens) do que o guarda fez por último, para o diagnóstico.
+const noteGuard = (env, msg) => kv(env).put("guard:last", `${new Date().toISOString()} ${msg}`.slice(0, 200), { expirationTtl: 86400 }).catch(() => {});
+
+/** Diagnóstico sem segredos: só diz se cada peça está ligada, se o KV realmente grava/lê e o resultado do último aviso. */
 export async function guardStatus(env) {
+  let kv_teste;
+  try {
+    const k = `selftest:${Math.random().toString(36).slice(2)}`;
+    await kv(env).put(k, "ok", { expirationTtl: 60 });
+    kv_teste = (await kv(env).get(k)) === "ok" ? "gravou e leu" : "gravou mas não leu de volta";
+  } catch (e) {
+    kv_teste = `erro: ${String((e && e.message) || e).slice(0, 120)}`;
+  }
+  const lastOf = async (k, vazio) => (await kv(env).get(k).catch(() => null)) || vazio;
   return {
+    versao: GUARD_VERSION,
     kv_ligado: !!env.ABUSE_KV,
+    kv_teste,
     telegram_token: !!env.TELEGRAM_BOT_TOKEN,
     telegram_chat_id: !!env.TELEGRAM_CHAT_ID,
-    ultimo_aviso: (await kv(env).get("tg:last").catch(() => null)) || "nenhum ainda",
+    limite_tentativas: CFG.threshold,
+    ultima_checagem_do_guarda: await lastOf("guard:last", "nenhuma ainda"),
+    ultimo_aviso: await lastOf("tg:last", "nenhum ainda"),
   };
+}
+
+/** Manda uma mensagem de teste ao Telegram (no máximo uma a cada 5 min, para ninguém usar isso para encher o bot). */
+export async function guardTelegramTest(env) {
+  const store = kv(env);
+  if (await store.get("tg:test-cooldown")) return { enviado: false, motivo: "espere 5 minutos entre testes" };
+  await store.put("tg:test-cooldown", "1", { expirationTtl: 300 });
+  await sendTelegram(env, "✅ Teste do Reo: se você leu isto, o aviso do Telegram está funcionando.");
+  return { enviado: true, resultado: (await store.get("tg:last").catch(() => null)) || "sem resultado" };
 }
 
 const tooMany = (cors) =>
@@ -87,7 +114,17 @@ const tooMany = (cors) =>
   });
 
 // Retorna uma Response 429 se deve barrar; null se pode seguir para o Gemini.
+// Se o próprio guarda falhar (ex.: KV fora do ar ou no limite do plano grátis), o chat segue e o erro fica no ?status.
 export async function guardChat(request, env, ctx, userMessage, cors) {
+  try {
+    return await guardChatInner(request, env, ctx, userMessage, cors);
+  } catch (e) {
+    await noteGuard(env, `ERRO no guarda: ${String((e && e.message) || e).slice(0, 120)}`);
+    return null;
+  }
+}
+
+async function guardChatInner(request, env, ctx, userMessage, cors) {
   const store = kv(env);
   const ip = request.headers.get("CF-Connecting-IP") || "desconhecido";
   const session = (request.headers.get("X-Session-Id") || "").slice(0, 64);
@@ -107,6 +144,7 @@ export async function guardChat(request, env, ctx, userMessage, cors) {
   const counts = [await bump(env, `sus:ip:${ip}`, CFG.windowSec)];
   if (session) counts.push(await bump(env, `sus:ses:${session}`, CFG.windowSec));
   const tentativas = Math.max(...counts);
+  await noteGuard(env, `mensagem suspeita: tentativas=${tentativas}/${CFG.threshold}`);
 
   if (tentativas >= CFG.threshold) {
     if (!(await store.get(`alerted:${ip}`))) {
@@ -116,7 +154,8 @@ export async function guardChat(request, env, ctx, userMessage, cors) {
         `IP: ${ip} (${country})\nSessão: ${session || "sem ID"}\n` +
         `Tentativas: ${tentativas} em ${CFG.windowSec / 60} min\n` +
         `Últimas mensagens:\n- ${log.join("\n- ")}`;
-      ctx.waitUntil(sendTelegram(env, text));
+      const envio = sendTelegram(env, text);
+      if (ctx && ctx.waitUntil) ctx.waitUntil(envio); else await envio;
     }
     if (CFG.blockOnAlert) {
       await store.put(`block:${ip}`, "1", { expirationTtl: CFG.blockSec });

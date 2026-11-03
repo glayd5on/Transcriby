@@ -14,7 +14,7 @@
 //   ?mode=chat (corpo JSON {message, history, transcript}) -> { reply }   (Reo)
 
 import { buildReoSystem } from "./reo.js";
-import { guardChat, guardStatus } from "./guard.js";
+import { guardChat, guardStatus, guardTelegramTest } from "./guard.js";
 
 // ===== Modelos (constantes configuráveis) =====
 const MODEL_LITE = "gemini-3.1-flash-lite";   // transcrição de áudio e descrição de imagem
@@ -180,6 +180,7 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
     // Diagnóstico (abrir o endereço do Worker no navegador): só mostra se as peças estão ligadas, nunca valores.
     if (req.method === "GET" && new URL(req.url).searchParams.has("status")) return json(await guardStatus(env), 200, h);
+    if (req.method === "GET" && new URL(req.url).searchParams.has("telegram-teste")) return json(await guardTelegramTest(env), 200, h);
     if (req.method !== "POST") return json({ error: "use POST" }, 405, h);
     if (env.ACCESS_KEY && req.headers.get("X-Access-Key") !== env.ACCESS_KEY) return json({ error: "código de acesso incorreto" }, 401, h);
     let sa = null;
