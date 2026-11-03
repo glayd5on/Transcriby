@@ -12,3 +12,7 @@ keep_vars = true
 # [[kv_namespaces]]
 # binding = "ABUSE_KV"
 # id = "COLE_O_ID_AQUI"
+
+
+# Habilita builds de prvia isolapreviaara branches e pull requests.
+[previews]
