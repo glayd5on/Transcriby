@@ -209,6 +209,10 @@
   .bub.reo > :first-child { margin-top:0; } .bub.reo > :last-child { margin-bottom:0; }
   .bub.reo p, .bub.reo h4 { margin:8px 0; } .bub.reo ul, .bub.reo ol { margin:8px 0; padding-left:22px; }
   .bub.reo h4 { font-family:var(--font-display); font-size:16px; }
+  .bubacts { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+  .bubacts span { font-size:14px; color:var(--muted); flex:1 1 100%; }
+  .bubacts button { min-height:44px; padding:0 16px; border-radius:12px; border:1.5px solid var(--line-strong); background:transparent; color:var(--accent-text); font:inherit; font-size:15px; font-weight:600; cursor:pointer; }
+  .bubacts button:hover { border-color:var(--accent); }
   .reoform { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
   .reoform textarea { width:100%; min-height:64px; max-height:160px; resize:vertical; padding:12px 14px; font:inherit; font-size:16px; line-height:1.4; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:14px; }
   .reoform button.primary { margin-top:0; }
@@ -737,6 +741,25 @@ const addBubble = (cls, text, isRich) => {
   if (isRich) rich(d, text); else d.textContent = text;
   $('reoLog').append(d); d.scrollIntoView({ block: 'nearest' }); return d;
 };
+// Embaixo de resumos e respostas longas: perguntar se quer copiar o texto ou baixar em .md (Markdown).
+function addActions(bub, question, out) {
+  if (!(/resum/i.test(question) || out.length >= 600)) return;
+  const row = document.createElement('div'); row.className = 'bubacts';
+  const lead = document.createElement('span'); lead.textContent = 'Quer copiar esta resposta ou baixar em .md?';
+  const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Copiar';
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(out); } catch (_) { const a = document.createElement('textarea'); a.value = out; document.body.append(a); a.select(); document.execCommand('copy'); a.remove(); }
+    copy.textContent = 'Copiado!'; setTimeout(() => { copy.textContent = 'Copiar'; }, 2000);
+  };
+  const dl = document.createElement('button'); dl.type = 'button'; dl.textContent = 'Baixar .md';
+  dl.onclick = () => {
+    const base = (waFile && waFile.name ? waFile.name : 'conversa').replace(/\.[^.]+$/, '');
+    const a = document.createElement('a');
+    a.href = blobUrl(`# Reo: ${base}\n\n${out}\n`, 'text/markdown'); a.download = `reo-${/resum/i.test(question) ? 'resumo' : 'resposta'}-${base}.md`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+  row.append(lead, copy, dl); bub.append(row);
+}
 const setReoBusy = b => { reoBusy = b; $('reoSend').disabled = b; $('reoSend').textContent = b ? 'O Reo está lendo…' : 'Enviar'; $('reoChips').querySelectorAll('button').forEach(x => { x.disabled = b; }); };
 
 async function sendReo(message) {
@@ -753,7 +776,7 @@ async function sendReo(message) {
       onText: t => { if (t) { started = true; rich(wait, t); wait.scrollIntoView({ block: 'nearest' }); } },   // a resposta aparece aos poucos
     }));
     const out = reply || 'Não consegui responder agora. Tente reformular a pergunta.';
-    rich(wait, out);
+    rich(wait, out); addActions(wait, message, out);
     reoHistory.push({ role: 'user', text: message }, { role: 'model', text: out });
   } catch (e) {
     if (!started) wait.remove();

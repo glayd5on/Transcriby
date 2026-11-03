@@ -4,7 +4,7 @@
 //              + VERTEX_LOCATION (opcional, padrão us-central1)
 //   AI STUDIO: GEMINI_API_KEY (secreta)
 // Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (outros endereços permitidos, separados por vírgula; os SITE_ORIGINS abaixo já valem sempre).
-// Modelos (opcionais; trocam os padrões abaixo): MODEL_LITE, MODEL_FLASH, MODEL_FALLBACK.
+// Modelos (opcionais; trocam os padrões abaixo): MODEL_LITE, MODEL_FLASH, MODEL_CHAT (chat do Reo; padrão = MODEL_LITE), MODEL_FALLBACK.
 // Alerta do chat (opcionais): KV ABUSE_KV (wrangler.toml) e segredos TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID. Ver guard.js.
 //
 // Usos (POST):
@@ -18,7 +18,8 @@ import { guardChat, guardStatus, guardTelegramTest } from "./guard.js";
 
 // ===== Modelos (constantes configuráveis) =====
 const MODEL_LITE = "gemini-3.1-flash-lite";   // transcrição de áudio e descrição de imagem
-const MODEL_FLASH = "gemini-3.8-flash";       // chat do Reo, resumos e organização (só quando a pessoa pede no site)
+const MODEL_FLASH = "gemini-3.8-flash";       // resumos e organização (só quando a pessoa pede no site)
+// O chat do Reo usa o modelo leve (MODEL_LITE) por ser bem mais rápido; para usar outro, defina MODEL_CHAT.
 const MODEL_FALLBACK = "gemini-2.5-flash";    // usado só se o modelo acima não existir naquela região/projeto
 
 const MAX_BYTES = 14 * 1024 * 1024;
@@ -253,7 +254,7 @@ export default {
       const contents = [...history, { role: "user", parts: [{ text: message }] }];
 
       const wantStream = body.stream === true;
-      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: flash, systemInstruction: buildReoSystem(transcript), contents, stream: wantStream });
+      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: env.MODEL_CHAT || lite, systemInstruction: buildReoSystem(transcript), contents, stream: wantStream });
       if (out.error) return json({ error: out.error }, out.status, h);
       if (out.stream) return new Response(out.stream, { status: 200, headers: { ...h, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
       return json({ reply: out.text || "Não consegui responder agora. Tente reformular a pergunta." }, 200, h);
