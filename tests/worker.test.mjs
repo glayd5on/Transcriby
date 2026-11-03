@@ -174,4 +174,33 @@ test("se o KV falhar, o chat continua e o erro aparece no ?status", async () => 
   assert.match(st.kv_teste, /erro: KV fora do ar/);
 });
 
+test("chat usa pouco raciocínio (3.x: nível low; 2.5: orçamento 0); resumo não", async () => {
+  reset();
+  await worker.fetch(chat("oi"), mkEnv(), ctx);
+  assert.deepEqual(sent[0].body.generationConfig.thinkingConfig, { thinkingLevel: "low" });
+  assert.equal("fast" in sent[0].body.generationConfig, false);
+  await worker.fetch(chat("oi"), mkEnv({ MODEL_FLASH: "gemini-2.5-flash" }), ctx);
+  assert.deepEqual(sent[1].body.generationConfig.thinkingConfig, { thinkingBudget: 0 });
+  await worker.fetch(post("?mode=summary", { text: "abc" }), mkEnv(), ctx);
+  assert.equal("thinkingConfig" in sent[2].body.generationConfig, false);
+});
+
+test("se o modelo recusar a configuração de raciocínio, repete o pedido sem ela", async () => {
+  reset();
+  const prev = globalThis.fetch;
+  let n = 0;
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    sent.push({ body });
+    if (body.generationConfig.thinkingConfig && n++ === 0)
+      return new Response(JSON.stringify({ error: { message: "Thinking level low is invalid" } }), { status: 400 });
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok" }] } }] }), { status: 200 });
+  };
+  const r = await worker.fetch(chat("oi"), mkEnv(), ctx);
+  globalThis.fetch = prev;
+  assert.equal((await r.json()).reply, "ok");
+  assert.equal(sent.length, 2);
+  assert.equal("thinkingConfig" in sent[1].body.generationConfig, false);
+});
+
 test.after(() => { globalThis.fetch = realFetch; });
