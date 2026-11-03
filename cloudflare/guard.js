@@ -52,15 +52,32 @@ async function bump(env, key, ttl) {
   return n;
 }
 
+// Guarda o resultado do último envio (sem segredos) para o diagnóstico em guardStatus.
+const noteTelegram = (env, msg) => kv(env).put("tg:last", String(msg).slice(0, 200), { expirationTtl: 3600 }).catch(() => {});
+
 async function sendTelegram(env, text) {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;   // sem Telegram configurado: não avisa
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) { await noteTelegram(env, "não enviado: segredos do Telegram ausentes"); return; }
   try {
-    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: text.slice(0, 3800) }),
     });
-  } catch (_) { /* o alerta nunca pode derrubar o chat */ }
+    const j = await r.json().catch(() => ({}));
+    await noteTelegram(env, r.ok ? "enviado com sucesso" : `erro do Telegram ${r.status}: ${j.description || ""}`);
+  } catch (e) {
+    await noteTelegram(env, "falha de rede ao falar com o Telegram"); /* o alerta nunca pode derrubar o chat */
+  }
+}
+
+/** Diagnóstico sem segredos: só diz se cada peça está ligada e o resultado do último aviso. */
+export async function guardStatus(env) {
+  return {
+    kv_ligado: !!env.ABUSE_KV,
+    telegram_token: !!env.TELEGRAM_BOT_TOKEN,
+    telegram_chat_id: !!env.TELEGRAM_CHAT_ID,
+    ultimo_aviso: (await kv(env).get("tg:last").catch(() => null)) || "nenhum ainda",
+  };
 }
 
 const tooMany = (cors) =>
