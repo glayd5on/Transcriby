@@ -3,7 +3,7 @@
 //   VERTEX:    GOOGLE_SERVICE_ACCOUNT (secreta, o conteúdo do arquivo .json da conta de serviço)
 //              + VERTEX_LOCATION (opcional, padrão us-central1)
 //   AI STUDIO: GEMINI_API_KEY (secreta)
-// Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (ex.: https://glayd5on.github.io).
+// Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (outros endereços permitidos, separados por vírgula; os SITE_ORIGINS abaixo já valem sempre).
 // Modelos (opcionais; trocam os padrões abaixo): MODEL_LITE, MODEL_FLASH, MODEL_FALLBACK.
 // Alerta do chat (opcionais): KV ABUSE_KV (wrangler.toml) e segredos TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID. Ver guard.js.
 //
@@ -65,9 +65,12 @@ TRANSCRIÇÃO:
 `;
 const LANGS = { portuguese: "português do Brasil", english: "inglês", spanish: "espanhol" };
 
+// Endereços públicos do site (não são segredo). Valem sempre, além do que estiver em ALLOWED_ORIGIN.
+const SITE_ORIGINS = ["https://glayd5on.github.io", "https://transcriby.glaydson.work"];
+
 const cors = (env, req) => {
   const o = req.headers.get("Origin") || "";
-  const allowed = env.ALLOWED_ORIGIN ? env.ALLOWED_ORIGIN.split(",").map(s => s.trim()) : null;
+  const allowed = env.ALLOWED_ORIGIN ? [...new Set([...SITE_ORIGINS, ...env.ALLOWED_ORIGIN.split(",").map(s => s.trim()).filter(Boolean)])] : null;
   return {
     "Access-Control-Allow-Origin": !allowed || allowed.includes(o) ? (o || "*") : allowed[0],
     "Access-Control-Allow-Headers": "Content-Type, X-Access-Key, X-Session-Id",

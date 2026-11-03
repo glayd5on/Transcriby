@@ -125,4 +125,14 @@ test("CORS libera X-Session-Id e a resposta 429 também leva CORS", async () => 
   assert.equal(r.status, 429); assert.equal(r.headers.get("Access-Control-Allow-Origin"), "https://site.example");
 });
 
+test("o domínio próprio do site é liberado mesmo com ALLOWED_ORIGIN só com o github.io", async () => {
+  const env = mkEnv({ ALLOWED_ORIGIN: "https://glayd5on.github.io" });
+  for (const o of ["https://glayd5on.github.io", "https://transcriby.glaydson.work"]) {
+    const r = await worker.fetch(new Request("https://w.example/", { method: "OPTIONS", headers: { Origin: o } }), env, ctx);
+    assert.equal(r.headers.get("Access-Control-Allow-Origin"), o);
+  }
+  const r = await worker.fetch(new Request("https://w.example/", { method: "OPTIONS", headers: { Origin: "https://outro.example" } }), env, ctx);
+  assert.equal(r.headers.get("Access-Control-Allow-Origin"), "https://glayd5on.github.io");
+});
+
 test.after(() => { globalThis.fetch = realFetch; });
