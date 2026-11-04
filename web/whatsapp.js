@@ -168,18 +168,31 @@ export function formatLine(m) {
   return `[${brDate(m.date)} ${m.time}] ${m.sender} (${TYPE_LABEL[m.kind] || m.kind}): ${lineContent(m)}`;
 }
 
-export const toTranscript = (messages) => messages.map(formatLine).join("\n");
+/** Linhas prontas. Com mais de uma conversa (m.conv), cada uma começa com "=== Conversa: nome ===". */
+export function groupedLines(messages) {
+  const multi = new Set(messages.map((m) => m.conv).filter(Boolean)).size > 1;
+  if (!multi) return messages.map(formatLine);
+  const out = []; let cur = null;
+  for (const m of messages) {
+    if (m.conv !== cur) { cur = m.conv; out.push(`${out.length ? "\n" : ""}=== Conversa: ${cur} ===`); }
+    out.push(formatLine(m));
+  }
+  return out;
+}
+
+export const toTranscript = (messages) => groupedLines(messages).join("\n");
 
 // ===== Filtros =====
 
 export const normalize = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export const hasFilters = (f) => !!(f && (f.sender || f.from || f.to || (f.q && f.q.trim())));
+export const hasFilters = (f) => !!(f && (f.conv || f.sender || f.from || f.to || (f.q && f.q.trim())));
 
 export function applyFilters(messages, f) {
   if (!hasFilters(f)) return messages;
   const terms = normalize(f.q).split(/\s+/).filter(Boolean);
   return messages.filter((m) => {
+    if (f.conv && m.conv !== f.conv) return false;
     if (f.sender && m.sender !== f.sender) return false;
     if (f.from && m.date < f.from) return false;
     if (f.to && m.date > f.to) return false;
@@ -193,6 +206,7 @@ export function applyFilters(messages, f) {
 
 export function describeFilters(f) {
   const parts = [];
+  if (f.conv) parts.push(`conversa: ${f.conv}`);
   if (f.sender) parts.push(`pessoa: ${f.sender}`);
   if (f.from || f.to) parts.push(`período: ${f.from ? brDate(f.from) : "início"} a ${f.to ? brDate(f.to) : "fim"}`);
   if (f.q && f.q.trim()) parts.push(`busca: "${f.q.trim()}"`);
@@ -202,12 +216,14 @@ export function describeFilters(f) {
 // ===== Exportação em .md =====
 
 export function toMarkdown(shown, { fileName = "", total = shown.length, filters = {}, senders = [], generated = new Date() } = {}) {
-  const first = shown[0]?.date, last = shown[shown.length - 1]?.date;
+  const first = shown.reduce((a, m) => (!a || m.date < a ? m.date : a), ""), last = shown.reduce((a, m) => (m.date > a ? m.date : a), "");
+  const convNames = [...new Set(shown.map((m) => m.conv).filter(Boolean))];
   const gen = `${pad(generated.getDate())}/${pad(generated.getMonth() + 1)}/${generated.getFullYear()}`;
   const head = [
     "# Conversa do WhatsApp",
     "",
     fileName ? `- Arquivo: ${fileName}` : null,
+    convNames.length > 1 ? `- Conversas: ${convNames.join(", ")}` : null,
     first ? `- Período: ${brDate(first)} a ${brDate(last)}` : null,
     senders.length ? `- Participantes: ${senders.join(", ")}` : null,
     `- Mensagens: ${shown.length}${shown.length !== total ? ` (de ${total} na conversa completa)` : ""}`,
@@ -218,7 +234,7 @@ export function toMarkdown(shown, { fileName = "", total = shown.length, filters
     "",
   ].filter((x) => x !== null).join("\n");
   // Duas barras no fim da linha viram quebra de linha no Markdown, sem poluir o texto.
-  return head + shown.map((m) => formatLine(m) + "  ").join("\n") + "\n";
+  return head + groupedLines(shown).map((l) => l + "  ").join("\n") + "\n";
 }
 
 // ===== Duração =====

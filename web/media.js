@@ -1,7 +1,7 @@
 // Importador de conversas do WhatsApp (no navegador): abre o .zip aos poucos, mede a duração do áudio,
 // e transcreve áudios, a fala dos vídeos e descreve imagens. O vídeo NUNCA é enviado: só a faixa de áudio dele.
 import { decodeToMono16k, probeMedia, NoAudio } from "./audio.js";
-import { transcribeWithGemini, transcribeRaw, describeImage, NeedKey } from "./gemini.js";
+import { transcribeWithGemini, transcribeRaw, describeImage, NeedKey, LimitError } from "./gemini.js";
 import { baseName, extOf } from "./whatsapp.js";
 
 // zip.js lê o .zip aos poucos (sem carregar tudo na memória). Tenta mais de um endereço, por garantia.
@@ -136,7 +136,7 @@ export async function processMedia(zipFile, messages, { url, language, key, onPr
       }
       m.status = "done"; m.error = "";
     } catch (e) {
-      if (e instanceof NeedKey) { fatal = e; return; }
+      if (e instanceof NeedKey || e instanceof LimitError) { fatal = e; return; }   // para tudo; o que falta continua "pendente"
       m.status = "error"; m.error = (e && e.message) || String(e);
     }
     done++; onProgress(done, total, m);

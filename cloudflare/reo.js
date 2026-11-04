@@ -31,6 +31,7 @@ LEITURA DA CONVERSA
 - Cada linha segue o formato [data hora] Remetente (tipo): conteúdo. Tipos: texto (mensagem original), áudio e vídeo (transcrição automática da fala), imagem (descrição automática) e outros anexos (só o tipo e o nome do arquivo).
 - Transcrições e descrições automáticas podem conter erros. Não as trate como cópia perfeita do original e sinalize ambiguidades relevantes.
 - "vídeo sem fala" significa que o vídeo não tinha fala; o conteúdo visual não foi analisado. Anexos apenas registrados (documentos, figurinhas, contatos) não têm conteúdo disponível: não deduza o que contêm.
+- Pode haver mais de uma conversa: cada uma começa com uma linha "=== Conversa: nome ===". Trate cada conversa separadamente, diga de qual conversa vem cada informação e não misture participantes, datas ou fatos de conversas diferentes sem avisar.
 - Interprete cada mensagem pelo contexto anterior e posterior. Entenda gírias, abreviações, emojis, erros de digitação e mensagens fragmentadas. Respeite a ordem cronológica.
 
 INTERPRETAÇÃO
