@@ -5,16 +5,20 @@
 //   AI STUDIO: GEMINI_API_KEY (secreta)
 // Comuns: ACCESS_KEY (senha do site, opcional), ALLOWED_ORIGIN (outros endereços permitidos, separados por vírgula; os SITE_ORIGINS abaixo já valem sempre).
 // Modelos (opcionais; trocam os padrões abaixo): MODEL_LITE, MODEL_FLASH, MODEL_CHAT (chat do Reo; padrão = MODEL_LITE), MODEL_FALLBACK.
+// Limite diário e código de liberação (opcionais): Durable Object USAGE (wrangler.toml), segredo UNLIMITED_CODES, DAILY_LIMIT_IP_MIN, DAILY_LIMIT_SITE_MIN. Ver limits.js.
 // Alerta do chat (opcionais): KV ABUSE_KV (wrangler.toml) e segredos TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID. Ver guard.js.
 //
 // Usos (POST):
 //   áudio (corpo binário, WAV por padrão)  -> { segments: [{ start: "MM:SS", text, paragraph }], text }
 //   ?mode=image (corpo = imagem)           -> { text } (descrição curta)
 //   ?mode=summary (corpo JSON {text})      -> { summary }
+//   ?mode=quota                            -> { used, limit, remaining, unlimited, ... } (não gasta nada)
 //   ?mode=chat (corpo JSON {message, history, transcript}) -> { reply }   (Reo); com "stream": true devolve o texto aos poucos (text/plain)
 
 import { buildReoSystem } from "./reo.js";
 import { guardChat, guardStatus, guardTelegramTest } from "./guard.js";
+import { limiter, limitsStatus, COST, audioCost } from "./limits.js";
+export { UsageCounter } from "./limits.js";   // o Cloudflare exige a classe do Durable Object exportada aqui
 
 // ===== Modelos (constantes configuráveis) =====
 const MODEL_LITE = "gemini-3.1-flash-lite";   // transcrição de áudio e descrição de imagem
@@ -69,12 +73,13 @@ const LANGS = { portuguese: "português do Brasil", english: "inglês", spanish:
 // Endereços públicos do site (não são segredo). Valem sempre, além do que estiver em ALLOWED_ORIGIN.
 const SITE_ORIGINS = ["https://glayd5on.github.io", "https://transcriby.glaydson.work"];
 
+const originsOf = (env) => [...new Set([...SITE_ORIGINS, ...String(env.ALLOWED_ORIGIN || "").split(",").map(s => s.trim()).filter(Boolean)])];
 const cors = (env, req) => {
   const o = req.headers.get("Origin") || "";
-  const allowed = env.ALLOWED_ORIGIN ? [...new Set([...SITE_ORIGINS, ...env.ALLOWED_ORIGIN.split(",").map(s => s.trim()).filter(Boolean)])] : null;
+  const allowed = originsOf(env);
   return {
-    "Access-Control-Allow-Origin": !allowed || allowed.includes(o) ? (o || "*") : allowed[0],
-    "Access-Control-Allow-Headers": "Content-Type, X-Access-Key, X-Session-Id",
+    "Access-Control-Allow-Origin": allowed.includes(o) ? o : allowed[0],
+    "Access-Control-Allow-Headers": "Content-Type, X-Access-Key, X-Session-Id, X-Unlimited-Code",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
@@ -218,9 +223,11 @@ export default {
     const h = cors(env, req);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
     // Diagnóstico (abrir o endereço do Worker no navegador): só mostra se as peças estão ligadas, nunca valores.
-    if (req.method === "GET" && new URL(req.url).searchParams.has("status")) return json(await guardStatus(env), 200, h);
+    if (req.method === "GET" && new URL(req.url).searchParams.has("status")) return json({ ...(await guardStatus(env)), ...limitsStatus(env) }, 200, h);
     if (req.method === "GET" && new URL(req.url).searchParams.has("telegram-teste")) return json(await guardTelegramTest(env), 200, h);
     if (req.method !== "POST") return json({ error: "use POST" }, 405, h);
+    // Só o site pode chamar: navegadores sempre mandam o Origin; scripts soltos (curl) normalmente não. Não substitui o limite diário.
+    if (!originsOf(env).includes(req.headers.get("Origin") || "")) return json({ error: "origem não permitida" }, 403, h);
     if (env.ACCESS_KEY && req.headers.get("X-Access-Key") !== env.ACCESS_KEY) return json({ error: "código de acesso incorreto" }, 401, h);
     let sa = null;
     if (env.GOOGLE_SERVICE_ACCOUNT) {
@@ -229,6 +236,17 @@ export default {
 
     const q = new URL(req.url).searchParams;
     const mode = q.get("mode") || "audio";
+    const L = await limiter(env, req, h, json);   // limite diário por pessoa e do site; código de liberação
+    if (L.blocked) return L.blocked;
+    if (mode === "quota") return json(await L.quota(), 200, h);
+    // Cobra o uso antes de chamar o Gemini; se o Gemini falhar, devolve (assim tentar de novo não gasta em dobro).
+    const spend = async (cost, run) => {
+      const no = await L.charge(cost);
+      if (no) return no;
+      const out = await run();
+      if (out.error) await L.refund(cost);
+      return out;
+    };
     const lite = env.MODEL_LITE || MODEL_LITE;
     const flash = env.MODEL_FLASH || MODEL_FLASH;
 
@@ -254,7 +272,8 @@ export default {
       const contents = [...history, { role: "user", parts: [{ text: message }] }];
 
       const wantStream = body.stream === true;
-      const out = await callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: env.MODEL_CHAT || lite, systemInstruction: buildReoSystem(transcript), contents, stream: wantStream });
+      const out = await spend(COST.chat, () => callGemini(env, sa, null, { maxOutputTokens: 8192, fast: true }, { model: env.MODEL_CHAT || lite, systemInstruction: buildReoSystem(transcript), contents, stream: wantStream }));
+      if (out instanceof Response) return out;
       if (out.error) return json({ error: out.error }, out.status, h);
       if (out.stream) return new Response(out.stream, { status: 200, headers: { ...h, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
       return json({ reply: out.text || "Não consegui responder agora. Tente reformular a pergunta." }, 200, h);
@@ -266,7 +285,8 @@ export default {
       const text = String(body?.text || "").trim();
       if (!text) return json({ error: "texto vazio" }, 400, h);
       if (text.length > MAX_TEXT_CHARS) return json({ error: "texto grande demais para resumir" }, 413, h);
-      const out = await callGemini(env, sa, [{ text: SUMMARY_PROMPT(LANGS[body.lang] || "", body.size) + text }], { temperature: 0.3, maxOutputTokens: 16384 }, { model: flash });
+      const out = await spend(COST.summary, () => callGemini(env, sa, [{ text: SUMMARY_PROMPT(LANGS[body.lang] || "", body.size) + text }], { temperature: 0.3, maxOutputTokens: 16384 }, { model: flash }));
+      if (out instanceof Response) return out;
       if (out.error) return json({ error: out.error }, out.status, h);
       return json({ summary: out.text }, 200, h);
     }
@@ -277,9 +297,10 @@ export default {
     if (mode === "image") {
       if (!bytes.length) return json({ error: "imagem vazia" }, 400, h);
       if (bytes.length > MAX_BYTES) return json({ error: "imagem grande demais" }, 413, h);
-      const out = await callGemini(env, sa,
+      const out = await spend(COST.image, () => callGemini(env, sa,
         [{ text: IMAGE_PROMPT }, { inlineData: { mimeType: mimeFrom(req, IMAGE_MIMES, "image/jpeg"), data: toBase64(bytes) } }],
-        { temperature: 0, maxOutputTokens: 1024 }, { model: lite });
+        { temperature: 0, maxOutputTokens: 1024 }, { model: lite }));
+      if (out instanceof Response) return out;
       if (out.error) return json({ error: out.error }, out.status, h);
       return json({ text: out.text }, 200, h);
     }
@@ -289,9 +310,11 @@ export default {
     if (bytes.length > MAX_BYTES) return json({ error: "parte de áudio grande demais" }, 413, h);
 
     const lang = LANGS[q.get("lang")] || "";
-    const out = await callGemini(env, sa,
-      [{ text: PROMPT(lang) }, { inlineData: { mimeType: mimeFrom(req, AUDIO_MIMES, "audio/wav"), data: toBase64(bytes) } }],
-      { temperature: 0, maxOutputTokens: 32768, responseMimeType: "application/json", responseSchema: SEGMENTS_SCHEMA }, { model: lite });
+    const audioMime = mimeFrom(req, AUDIO_MIMES, "audio/wav");
+    const out = await spend(audioCost(bytes.length, audioMime), () => callGemini(env, sa,
+      [{ text: PROMPT(lang) }, { inlineData: { mimeType: audioMime, data: toBase64(bytes) } }],
+      { temperature: 0, maxOutputTokens: 32768, responseMimeType: "application/json", responseSchema: SEGMENTS_SCHEMA }, { model: lite }));
+    if (out instanceof Response) return out;
     if (out.error) return json({ error: out.error }, out.status, h);
     const segments = cleanSegments(out.text);
     if (!segments) return json({ error: "o modelo devolveu uma resposta fora do formato" }, 502, h);

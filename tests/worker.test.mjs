@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import worker from "../cloudflare/worker.js";
 import { isSuspicious, CFG } from "../cloudflare/guard.js";
 import { REO_SYSTEM } from "../cloudflare/reo.js";
+import { UsageCounter, createMemoryStorage, audioCost, ipKey, dayKey, resetAt, MAX_BAD_CODES } from "../cloudflare/limits.js";
 
 const realFetch = globalThis.fetch;
 let sent = [], telegram = [], missing = new Set();
@@ -21,7 +22,7 @@ const reset = () => { sent = []; telegram = []; missing = new Set(); };
 class FakeKV { m = new Map(); async get(k) { return this.m.get(k) ?? null; } async put(k, v) { this.m.set(k, v); } }
 const mkEnv = (extra = {}) => ({ GEMINI_API_KEY: "k", ...extra });
 const ctx = { waitUntil: (p) => p };
-const post = (qs, body, headers = {}) => new Request("https://w.example/" + qs, { method: "POST", body: typeof body === "string" || body instanceof Uint8Array ? body : JSON.stringify(body), headers: { "CF-Connecting-IP": "1.2.3.4", ...headers } });
+const post = (qs, body, headers = {}) => new Request("https://w.example/" + qs, { method: "POST", body: typeof body === "string" || body instanceof Uint8Array ? body : JSON.stringify(body), headers: { Origin: "https://glayd5on.github.io", "CF-Connecting-IP": "1.2.3.4", ...headers } });
 const chat = (message, transcript = "[15/10/2026 09:00] Maria (texto): oi", extra = {}) => post("?mode=chat", { message, transcript, ...extra }, { "X-Session-Id": "sess1" });
 
 test("áudio e chat usam Flash-Lite; resumo usa Flash", async () => {
@@ -224,6 +225,138 @@ test("chat com stream:true devolve o texto aos poucos (sem os pensamentos) e err
   reset();
   const r2 = await worker.fetch(chat("oi"), mkEnv(), ctx);
   assert.equal((await r2.json()).reply, "resposta");
+});
+
+// ===== Limite diário, código de liberação e checagem de origem =====
+// Contador de verdade (a mesma classe do Durable Object), com armazenamento em memória.
+const mkUsage = () => {
+  const obj = new UsageCounter({ storage: createMemoryStorage() });
+  return { idFromName: (n) => n, get: () => ({ fetch: (req) => obj.fetch(req) }) };
+};
+const wav = (sec) => new Uint8Array(Math.round(sec * 32000));   // WAV 16 kHz mono: 32 KB por segundo
+const audioReq = (sec, headers = {}) => post("?lang=portuguese", wav(sec), { "Content-Type": "audio/wav", ...headers });
+
+test("pedido sem Origin do site é recusado (403) e nada vai ao Gemini; o site passa", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage() });
+  const semOrigin = new Request("https://w.example/", { method: "POST", body: wav(1), headers: { "Content-Type": "audio/wav" } });
+  assert.equal((await worker.fetch(semOrigin, env, ctx)).status, 403);
+  const outro = post("", wav(1), { Origin: "https://evil.example", "Content-Type": "audio/wav" });
+  assert.equal((await worker.fetch(outro, env, ctx)).status, 403);
+  assert.equal(sent.length, 0);
+  assert.equal((await worker.fetch(audioReq(1), env, ctx)).status, 200);
+});
+
+test("custo do áudio é pelo tamanho: WAV de 5 min = 5 min de uso", () => {
+  assert.equal(audioCost(wav(300).length, "audio/wav"), 5);
+  assert.equal(audioCost(8000 * 60, "audio/ogg"), 1);
+  assert.ok(audioCost(1, "audio/wav") >= 0.05);
+});
+
+test("limite diário por pessoa: passou, recusa com 429 e aviso em português; outra pessoa ainda pode", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "10" });
+  assert.equal((await worker.fetch(audioReq(300), env, ctx)).status, 200);   // 5 min
+  assert.equal((await worker.fetch(audioReq(300), env, ctx)).status, 200);   // 10 min (no limite)
+  const before = sent.length;
+  const r = await worker.fetch(audioReq(60), env, ctx);
+  assert.equal(r.status, 429);
+  const j = await r.json();
+  assert.equal(j.code, "daily_limit"); assert.equal(j.scope, "ip"); assert.equal(j.limit, 10); assert.match(j.error, /limite de hoje/);
+  assert.ok(j.reset_at > new Date().toISOString());
+  assert.equal(sent.length, before);   // não consumiu o Gemini
+  const outra = await worker.fetch(audioReq(60, { "CF-Connecting-IP": "8.8.8.8" }), env, ctx);
+  assert.equal(outra.status, 200);
+});
+
+test("imagem, resumo e pergunta ao Reo também gastam do limite do dia", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "4.5" });
+  assert.equal((await worker.fetch(chat("oi"), env, ctx)).status, 200);                     // 2
+  assert.equal((await worker.fetch(post("?mode=summary", { text: "abc" }), env, ctx)).status, 200);   // 4
+  assert.equal((await worker.fetch(post("?mode=image", new Uint8Array([1]), { "Content-Type": "image/png" }), env, ctx)).status, 200);   // 4,2
+  assert.equal((await worker.fetch(chat("oi"), env, ctx)).status, 429);
+});
+
+test("limite do site inteiro por dia", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_SITE_MIN: "6", DAILY_LIMIT_IP_MIN: "100" });
+  assert.equal((await worker.fetch(audioReq(300), env, ctx)).status, 200);
+  const r = await worker.fetch(audioReq(300, { "CF-Connecting-IP": "7.7.7.7" }), env, ctx);
+  assert.equal(r.status, 429); assert.equal((await r.json()).scope, "site");
+});
+
+test("se o Gemini falhar, o uso é devolvido (tentar de novo não gasta em dobro)", async () => {
+  reset();
+  const prev = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: "boom" } }), { status: 500 });
+  const env = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "5" });
+  for (let i = 0; i < 3; i++) assert.equal((await worker.fetch(audioReq(300), env, ctx)).status, 502);   // se cobrasse, o 2º já seria 429
+  globalThis.fetch = prev;
+  assert.equal((await worker.fetch(audioReq(300), env, ctx)).status, 200);
+});
+
+test("código de liberação: sem limite; código errado não libera; muitos errados bloqueiam; sem o segredo nada é liberado", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "1", UNLIMITED_CODES: "codigo-secreto-1, outro-codigo-22" });
+  assert.equal((await worker.fetch(audioReq(300), env, ctx)).status, 429);   // 5 min > 1 min
+  for (let i = 0; i < 3; i++) assert.equal((await worker.fetch(audioReq(300, { "X-Unlimited-Code": "outro-codigo-22" }), env, ctx)).status, 200);
+  assert.equal((await worker.fetch(audioReq(300, { "X-Unlimited-Code": "chute-errado" }), env, ctx)).status, 429);
+  // sem UNLIMITED_CODES configurado, nenhum código vale (nem vazio)
+  const env2 = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "1" });
+  assert.equal((await worker.fetch(audioReq(300, { "X-Unlimited-Code": "" }), env2, ctx)).status, 429);
+  assert.equal((await worker.fetch(audioReq(300, { "X-Unlimited-Code": "qualquercoisa" }), env2, ctx)).status, 429);
+  // códigos curtos (menos de 8 letras) são ignorados
+  const env3 = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "1", UNLIMITED_CODES: "abc" });
+  assert.equal((await worker.fetch(audioReq(300, { "X-Unlimited-Code": "abc" }), env3, ctx)).status, 429);
+});
+
+test("chutar códigos: depois de várias tentativas erradas o IP é bloqueado, até com o código certo", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage(), UNLIMITED_CODES: "codigo-secreto-1" });
+  let last;
+  for (let i = 0; i < MAX_BAD_CODES + 1; i++) last = await worker.fetch(post("?mode=quota", "", { "X-Unlimited-Code": "errado" + i }), env, ctx);
+  assert.equal(last.status, 429); assert.equal((await last.json()).code, "bad_code");
+  const certo = await worker.fetch(post("?mode=quota", "", { "X-Unlimited-Code": "codigo-secreto-1" }), env, ctx);
+  assert.equal(certo.status, 200);   // quem acerta não passa pelo contador de erros
+});
+
+test("?mode=quota mostra o uso, o limite e se o código vale, sem gastar nada", async () => {
+  reset();
+  const env = mkEnv({ USAGE: mkUsage(), DAILY_LIMIT_IP_MIN: "20", UNLIMITED_CODES: "codigo-secreto-1" });
+  await worker.fetch(audioReq(300), env, ctx);
+  let q = await (await worker.fetch(post("?mode=quota", ""), env, ctx)).json();
+  assert.deepEqual([q.unlimited, q.limit, q.used, q.remaining, q.code_given], [false, 20, 5, 15, false]);
+  q = await (await worker.fetch(post("?mode=quota", "", { "X-Unlimited-Code": "codigo-secreto-1" }), env, ctx)).json();
+  assert.deepEqual([q.unlimited, q.code_valid], [true, true]);
+  q = await (await worker.fetch(post("?mode=quota", "", { "X-Unlimited-Code": "nao-vale-nada" }), env, ctx)).json();
+  assert.deepEqual([q.unlimited, q.code_given, q.code_valid], [false, true, false]);
+  assert.equal(sent.length, 1);
+});
+
+test("contador falhando com o binding ligado: recusa (503) em vez de liberar tudo; ?status não mostra os códigos", async () => {
+  reset();
+  const quebrado = { idFromName: () => 1, get: () => ({ fetch: async () => { throw new Error("DO fora"); } }) };
+  const env = mkEnv({ USAGE: quebrado, UNLIMITED_CODES: "codigo-secreto-1" });
+  assert.equal((await worker.fetch(audioReq(60), env, ctx)).status, 503);
+  const st = await (await worker.fetch(new Request("https://w.example/?status"), env, ctx)).text();
+  assert.ok(!st.includes("codigo-secreto-1"));
+  assert.equal(JSON.parse(st).codigos_de_liberacao, 1);
+  assert.equal(JSON.parse(st).contador_ligado, true);
+});
+
+test("o contador zera no dia seguinte (horário de Brasília) e o IPv6 conta pelo bloco /64", async () => {
+  const st = createMemoryStorage(), obj = new UsageCounter({ storage: st });
+  const call = (day, cost) => obj.fetch(new Request("https://u/charge", { method: "POST", body: JSON.stringify({ day, ip: "1.1.1.1", cost, ipLimit: 5, siteLimit: 50 }) })).then((r) => r.json());
+  assert.equal((await call("2026-11-04", 5)).ok, true);
+  assert.equal((await call("2026-11-04", 1)).ok, false);
+  assert.equal((await call("2026-11-05", 1)).ok, true);
+  assert.equal(dayKey(Date.parse("2026-11-04T02:59:00Z")), "2026-11-03");   // 23h59 em Brasília
+  assert.equal(dayKey(Date.parse("2026-11-04T03:00:00Z")), "2026-11-04");
+  assert.equal(resetAt(Date.parse("2026-11-04T12:00:00Z")), "2026-11-05T03:00:00.000Z");
+  assert.equal(ipKey("2804:14d:1234:5678:aaaa:bbbb:cccc:dddd"), ipKey("2804:14d:1234:5678::1"));
+  assert.notEqual(ipKey("2804:14d:1234:5678::1"), ipKey("2804:14d:1234:9999::1"));
+  assert.equal(ipKey("1.2.3.4"), "1.2.3.4");
 });
 
 test.after(() => { globalThis.fetch = realFetch; });

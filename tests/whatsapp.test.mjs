@@ -1,7 +1,7 @@
 // Testes do leitor de conversas do WhatsApp. Rodar: node --test tests/
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseChat, formatLine, applyFilters, toMarkdown, toTranscript, kindFromName, fmtDuration } from "../docs/whatsapp.js";
+import { parseChat, formatLine, applyFilters, toMarkdown, toTranscript, kindFromName, fmtDuration, hasFilters } from "../docs/whatsapp.js";
 
 const IOS = [
   "‎[15/10/2026 09:00:01] Maria: ‎Mensagens e ligações são protegidas.",
@@ -92,4 +92,20 @@ test("tipos por nome e duração", () => {
   assert.equal(kindFromName("STK-20261015-WA0003.webp"), "figurinha");
   assert.equal(kindFromName("a.vcf"), "contato");
   assert.equal(fmtDuration(3 * 3600 + 12 * 60), "3 h 12 min");
+});
+
+test("várias conversas: transcrição com cabeçalho por conversa, filtro por conversa e .md com a lista", () => {
+  const a = parseChat("[15/10/2026 09:00:01] Maria: Oi\n[15/10/2026 09:01:00] João: Bom dia").messages.map((m) => ({ ...m, conv: "Casa" }));
+  const b = parseChat("[20/10/2026 14:00:00] Ana: Reunião amanhã").messages.map((m) => ({ ...m, conv: "Trabalho" }));
+  const all = [...a, ...b];
+  const t = toTranscript(all);
+  assert.match(t, /^=== Conversa: Casa ===\n\[15\/10\/2026 09:00\] Maria \(texto\): Oi/);
+  assert.match(t, /\n\n=== Conversa: Trabalho ===\n\[20\/10\/2026 14:00\] Ana/);
+  assert.equal(toTranscript(a).includes("==="), false);   // uma conversa só: sem cabeçalho (igual a antes)
+  assert.equal(hasFilters({ conv: "Casa" }), true);
+  assert.deepEqual(applyFilters(all, { conv: "Trabalho" }).map((m) => m.sender), ["Ana"]);
+  const md = toMarkdown(all, { fileName: "2 conversas" });
+  assert.match(md, /- Conversas: Casa, Trabalho/);
+  assert.match(md, /- Período: 15\/10\/2026 a 20\/10\/2026/);
+  assert.match(md, /=== Conversa: Trabalho ===/);
 });

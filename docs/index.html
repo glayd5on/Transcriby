@@ -175,6 +175,13 @@
   .wa-box.info { color:var(--muted); background:var(--sunken); border:1px solid var(--line); }
   .wa-box:empty { display:none; }
   .wa-panel .opts { margin:12px 0 0; }
+  .usage { margin:20px 8px 0; font-size:14px; color:var(--muted); }
+  .usage p { margin:0 0 4px; }
+  .usage .note { margin:6px 0 0; font-size:13px; }
+  .usage .linkbtn { min-height:44px; padding:0; background:none; border:0; color:var(--accent-text); font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; }
+  .codeform { display:flex; gap:8px; margin:4px 0 8px; }
+  .codeform input { flex:1; min-width:0; min-height:48px; padding:0 14px; border:1px solid var(--line); border-radius:12px; background:var(--sunken); color:var(--text); font:inherit; font-size:16px; }
+  .codeform .btn { margin-top:0; flex:none; }
   .btn.small { min-height:44px; font-size:15px; margin-top:10px; }
 
   .filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
@@ -276,9 +283,9 @@
       <span class="ficon" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M12 10v1M12 13v1M12 16v1"/></svg>
       </span>
-      <span class="fbody"><strong>Conversa do WhatsApp (.zip)</strong><span>Envie a conversa exportada: transcrevemos áudios e vídeos, descrevemos fotos e organizamos tudo por data e pessoa.</span></span>
+      <span class="fbody"><strong>Conversa do WhatsApp (.zip)</strong><span>Envie a conversa exportada (pode escolher várias de uma vez): transcrevemos áudios e vídeos, descrevemos fotos e organizamos tudo por data e pessoa.</span></span>
     </button>
-    <input type="file" id="zipFile" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" hidden>
+    <input type="file" id="zipFile" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" multiple hidden>
 
     <button class="primary" id="go" disabled>Transcrever</button>
 
@@ -358,6 +365,9 @@
     <section class="result" id="waResult" hidden aria-labelledby="wrt">
       <div class="rhead"><h2 id="wrt">Conversa organizada</h2><span id="waCount"></span></div>
       <div class="filters">
+        <label class="fld wide" id="fConvWrap" hidden><span class="k">Conversa</span>
+          <select id="fConv"><option value="">Todas as conversas</option></select>
+        </label>
         <label class="fld wide"><span class="k">Pessoa</span>
           <select id="fSender"><option value="">Todas as pessoas</option></select>
         </label>
@@ -393,10 +403,20 @@
       <p class="note">O Reo pode errar. Transcrições e descrições automáticas não são cópia perfeita do original.</p>
     </section>
   </section>
+<div class="usage" id="usage">
+  <p id="usageText"></p>
+  <button type="button" class="linkbtn" id="codeToggle">Tenho um código de liberação</button>
+  <form class="codeform" id="codeForm" hidden>
+    <input id="codeIn" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Código de liberação" placeholder="Digite o código">
+    <button class="btn alt" type="submit">Liberar</button>
+  </form>
+  <p id="codeMsg" role="status"></p>
+  <p class="note">O limite é em minutos de uso por dia: o áudio conta pela duração, cada foto vale 0,2 min e cada resumo ou pergunta ao Reo vale 2 min.</p>
+</div>
 </main>
 <script type="module">
 import { toSrt, toPrettyText } from "./srt.js";
-import { transcribeWithGemini, summarize, askReo, NeedKey } from "./gemini.js";
+import { transcribeWithGemini, summarize, askReo, NeedKey, LimitError, setUnlimitedCode, getQuota } from "./gemini.js";
 import { GEMINI_URL, MAX_AUDIO_HOURS } from "./config.js";
 import { decodeToMono16k } from "./audio.js";
 import { parseChat, applyFilters, hasFilters, formatLine, lineContent, toTranscript, toMarkdown, brDate, fmtDuration, TYPE_LABEL } from "./whatsapp.js";
@@ -441,10 +461,12 @@ const pick = f => {
 $('drop').onclick = () => $('file').click();
 $('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
 const isZip = f => /\.zip$/i.test(f.name) || /zip/i.test(f.type);
-$('file').onchange = e => e.target.files[0] && (isZip(e.target.files[0]) ? openWa(e.target.files[0]) : pick(e.target.files[0]));
+// Vários .zip de uma vez viram várias conversas; qualquer outro arquivo usa só o primeiro.
+const sendFiles = list => { const fs = [...list], zips = fs.filter(isZip); if (zips.length) openWa(zips); else if (fs[0]) pick(fs[0]); };
+$('file').onchange = e => sendFiles(e.target.files);
 ['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) isZip(f) ? openWa(f) : pick(f); });
+$('drop').addEventListener('drop', e => sendFiles(e.dataTransfer.files));
 
 const blobUrl = (content, type) => URL.createObjectURL(new Blob([content], { type: type + ';charset=utf-8' }));
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -482,6 +504,9 @@ const getKey = () => { try { return localStorage.getItem(KEYSTORE) || ''; } catc
 const askKey = () => { const k = (prompt('Digite o código de acesso do site:') || '').trim(); try { localStorage.setItem(KEYSTORE, k); } catch (_) {} return k; };
 // Roda a chamada ao servidor; se ele pedir o código de acesso, pergunta e tenta de novo.
 async function withKey(call) {
+  try { return await withKeyOnce(call); } finally { refreshUsageSoon(); }
+}
+async function withKeyOnce(call) {
   let key = getKey();
   for (let tries = 0; ; tries++) {
     try { return await call(key); }
@@ -492,6 +517,45 @@ async function withKey(call) {
   }
 }
 
+// ===================== Limite diário e código de liberação =====================
+const CODEKEY = 'transcriby_liberacao';
+const fmtMin = n => (Math.round(n * 10) / 10).toLocaleString('pt-BR');
+const readCode = () => { try { return localStorage.getItem(CODEKEY) || ''; } catch (_) { return ''; } };
+const saveCode = c => { try { c ? localStorage.setItem(CODEKEY, c) : localStorage.removeItem(CODEKEY); } catch (_) {} setUnlimitedCode(c); };
+// Link ...?liberar=CODIGO grava o código neste aparelho e some da barra de endereço.
+try {
+  const q = new URLSearchParams(location.search), c = (q.get('liberar') || '').trim();
+  if (c) { localStorage.setItem(CODEKEY, c); q.delete('liberar'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
+} catch (_) {}
+setUnlimitedCode(readCode());
+let quota = null;
+async function refreshUsage() {
+  if (!GEMINI_URL) return null;
+  let q = await getQuota(GEMINI_URL);
+  if (q && q.code_given && !q.code_valid) {   // código que não vale (errado ou trocado): volta ao limite normal
+    saveCode(''); $('codeMsg').textContent = 'Esse código não vale (mais). Voltou o limite diário normal.';
+    q = await getQuota(GEMINI_URL);
+  }
+  quota = q;
+  $('usageText').textContent = !q ? '' : q.unlimited ? 'Acesso liberado: sem limite diário.'
+    : q.site_full ? 'O limite de uso do site para hoje acabou. Volte amanhã.'
+    : `Uso de hoje: ${fmtMin(q.used)} de ${fmtMin(q.limit)} minutos. Zera à meia-noite.`;
+  $('codeToggle').hidden = !!(q && q.unlimited);
+  return q;
+}
+let usageTimer = 0;
+const refreshUsageSoon = () => { clearTimeout(usageTimer); usageTimer = setTimeout(refreshUsage, 400); };
+$('codeToggle').onclick = () => { $('codeForm').hidden = !$('codeForm').hidden; if (!$('codeForm').hidden) $('codeIn').focus(); };
+$('codeForm').onsubmit = async e => {
+  e.preventDefault();
+  const c = $('codeIn').value.trim(); if (!c) return;
+  $('codeMsg').textContent = 'Conferindo…'; saveCode(c);
+  const q = await refreshUsage();
+  if (q && q.unlimited) { $('codeMsg').textContent = 'Pronto! Acesso liberado neste aparelho.'; $('codeIn').value = ''; $('codeForm').hidden = true; }
+  else if (!q) { saveCode(''); $('codeMsg').textContent = 'Não consegui conferir agora. Tente de novo.'; }
+};
+refreshUsage();
+
 async function runReo(audio, name) {
   const language = $('lang').value;
   const onProgress = (i, n) => { setP(10 + Math.round(85 * i / n), n === 1 ? 'Transcrevendo com o Reo…' : `Transcrevendo com o Reo… parte ${Math.min(i + 1, n)} de ${n}`); mark('transcrevendo com o Reo'); };
@@ -501,7 +565,7 @@ async function runReo(audio, name) {
     if (!segs.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
     setP(100, ''); show(segs, name);
   } catch (e) {
-    fail('Erro ao transcrever: ' + (e.message || e) + '. Se continuar, aperte "Tentar de novo".');
+    fail(e instanceof LimitError ? e.message + '.' : 'Erro ao transcrever: ' + (e.message || e) + '. Se continuar, aperte "Tentar de novo".');
   }
 }
 
@@ -546,7 +610,8 @@ $('sumCopy').onclick = () => copyFrom($('sumOut'), $('sumCopy'), 'Copiar resumo'
 
 // ===================== Conversa do WhatsApp (.zip) =====================
 const REO_LIMIT_CHARS = 3_000_000;   // mesmo limite do servidor
-let wa = null;       // { zip, parsed, messages, name, measured }
+let wa = null;       // { convs: [{ zip, parsed, messages, name, file }], parsed (somado), messages (todas), name, measured }
+const MAX_CONVS = 10;
 let ctl = { stop: false };
 let waShown = [], waLimit = 300, reoBusy = false;
 const reoHistory = [];
@@ -556,52 +621,101 @@ const wset = (p, m, err) => {
 };
 const showWa = on => { $('home').hidden = on; $('wa').hidden = !on; window.scrollTo(0, 0); };
 $('zipBtn').onclick = () => $('zipFile').click();
-$('zipFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; f && openWa(f); };
+$('zipFile').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; fs.length && openWa(fs); };
 $('waBack').onclick = () => {
   ctl.stop = true; busy(false);
-  if (wa && wa.zip) wa.zip.close().catch(() => {});
+  closeWa();
   wa = null; waFile = null; unmark(); showWa(false);
 };
 
-async function openWa(f) {
-  waFile = f; wa = null; ctl = { stop: false }; reoHistory.length = 0;
+function closeWa() { if (wa) wa.convs.forEach(c => c.zip.close().catch(() => {})); }
+
+// Junta as conversas num só objeto (contagens somadas, período total, mensagens uma conversa depois da outra).
+function mergeConvs(convs) {
+  const counts = {}, dates = convs.map(c => c.parsed).filter(p => p.firstDate);
+  convs.forEach(c => Object.entries(c.parsed.counts).forEach(([k, v]) => { counts[k] = (counts[k] || 0) + v; }));
+  const parsed = {
+    messages: convs.flatMap(c => c.messages), counts,
+    senders: [...new Set(convs.flatMap(c => c.parsed.senders))],
+    firstDate: dates.map(p => p.firstDate).sort()[0] || '', lastDate: dates.map(p => p.lastDate).sort().pop() || '',
+  };
+  return { convs, parsed, messages: parsed.messages, name: convs.length === 1 ? convs[0].name : 'conversas', measured: null };
+}
+
+async function openWa(files) {
+  files = [...files].slice(0, MAX_CONVS);
+  closeWa(); wa = null; ctl = { stop: false }; reoHistory.length = 0;
+  const many = files.length > 1;
+  waFile = many ? { name: `${files.length} conversas`, size: files.reduce((a, f) => a + f.size, 0) } : files[0];
   showWa(true);
-  $('waFile').textContent = f.name + ' · ' + fmtSize(f.size);
+  $('waFile').textContent = many ? `${files.length} conversas · ${fmtSize(waFile.size)}` : files[0].name + ' · ' + fmtSize(files[0].size);
   $('waStats').innerHTML = ''; $('waPeople').textContent = ''; $('waAudio').textContent = ''; $('waWarn').textContent = '';
   $('waResult').hidden = true; $('reo').hidden = true; $('reoLog').innerHTML = '';
   $('waGo').disabled = true; $('waGo').hidden = false; $('waGo').textContent = 'Processar conversa'; $('waStop').hidden = true;
   busy(true);
+  const convs = [], skipped = [], used = new Set();
+  let firstErr = null;
   try {
-    wset(2, 'Abrindo o .zip…'); mark('abrindo o zip');
-    const zip = await openChatZip(f);
-    const parsed = parseChat(zip.text, zip.paths);
-    if (!parsed.messages.length) throw new Error('não reconheci nenhuma mensagem no arquivo de texto (o formato da conversa é diferente do esperado)');
-    wa = { zip, parsed, messages: parsed.messages, name: f.name.replace(/\.zip$/i, '') || 'conversa', measured: null };
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      wset(2 + 3 * i / files.length, many ? `Abrindo o .zip ${i + 1} de ${files.length}…` : 'Abrindo o .zip…'); mark('abrindo o zip');
+      let zip = null;
+      try {
+        zip = await openChatZip(f);
+        const parsed = parseChat(zip.text, zip.paths);
+        if (!parsed.messages.length) throw new Error('não reconheci nenhuma mensagem no arquivo de texto (o formato da conversa é diferente do esperado)');
+        let name = f.name.replace(/\.zip$/i, '') || 'conversa', n = 2;
+        for (const base = name; used.has(name); n++) name = `${base} (${n})`;
+        used.add(name);
+        parsed.messages.forEach(m => { m.conv = name; });
+        convs.push({ zip, parsed, messages: parsed.messages, name, file: f });
+      } catch (e) {
+        if (zip) zip.close().catch(() => {});
+        firstErr = firstErr || e; skipped.push(`${f.name} (${e.message || e})`);
+      }
+    }
+    if (!convs.length) throw many ? new Error('nenhum dos arquivos pôde ser lido: ' + skipped.join('; ')) : firstErr;
+    wa = mergeConvs(convs);
     renderWaSummary();
-    wset(5, 'Medindo o tempo de áudio…'); mark('medindo o áudio');
-    const m = await measureAudio(zip, wa.messages, (i, n) => wset(5 + Math.round(20 * i / Math.max(n, 1)), `Medindo o tempo de áudio… ${i} de ${n}`));
-    wa.measured = m; unmark();
-    const limitSec = MAX_AUDIO_HOURS * 3600;
+    let totalSec = 0, estimated = false;
+    for (let ci = 0; ci < convs.length; ci++) {
+      wset(5, 'Medindo o tempo de áudio…'); mark('medindo o áudio');
+      const m = await measureAudio(convs[ci].zip, convs[ci].messages, (i, n) => wset(5 + Math.round(20 * (ci + i / Math.max(n, 1)) / convs.length), `Medindo o tempo de áudio… ${many ? `conversa ${ci + 1} de ${convs.length}, ` : ''}${i} de ${n}`));
+      totalSec += m.totalSec; estimated = estimated || m.estimated;
+    }
+    wa.measured = { totalSec, estimated }; unmark();
+    const limitSec = MAX_AUDIO_HOURS * 3600, warns = [];
+    if (skipped.length) warns.push(`Não consegui abrir: ${skipped.join('; ')}.`);
     $('waAudio').innerHTML = '';
-    const strong = document.createElement('strong'); strong.textContent = fmtDuration(m.totalSec);
-    $('waAudio').append('Áudio a transcrever (áudios + fala dos vídeos): ', strong, (m.estimated ? ' (estimado)' : '') + `. Limite por envio: ${MAX_AUDIO_HOURS} h.`);
+    const strong = document.createElement('strong'); strong.textContent = fmtDuration(totalSec);
+    $('waAudio').append('Áudio a transcrever (áudios + fala dos vídeos): ', strong, (estimated ? ' (estimado)' : '') + `. Limite por envio: ${MAX_AUDIO_HOURS} h${many ? ' somando as conversas' : ''}.`);
     busy(false); wset(0, '');
-    if (m.totalSec > limitSec) {
-      $('waWarn').textContent = `Esta conversa tem ${fmtDuration(m.totalSec)} de áudio, acima do limite de ${MAX_AUDIO_HOURS} h por envio. Nada foi processado. Exporte a conversa de um período menor e envie de novo.`;
+    if (totalSec > limitSec) {
+      warns.push(`${many ? 'Estas conversas têm' : 'Esta conversa tem'} ${fmtDuration(totalSec)} de áudio, acima do limite de ${MAX_AUDIO_HOURS} h por envio. Nada foi processado. ${many ? 'Envie menos conversas ou exporte um período menor' : 'Exporte a conversa de um período menor'} e envie de novo.`);
+      $('waWarn').textContent = warns.join(' ');
       $('waGo').hidden = true;
       return;
     }
+    // Limite diário: avisa se o que falta processar não cabe no que resta hoje (processa até o limite e o resto fica para amanhã).
+    const q = await refreshUsage();
+    if (q && !q.unlimited) {
+      const need = totalSec / 60 + 0.2 * wa.messages.filter(m => m.kind === 'imagem' && m.file && m.status === 'pending').length;
+      if (need > q.remaining) warns.push(`Isso usa cerca de ${fmtMin(need)} min e hoje ainda restam ${fmtMin(q.remaining)}. O Transcriby processa até o limite; o que faltar fica pendente e você continua amanhã (ou com um código de liberação).`);
+    }
+    $('waWarn').textContent = warns.join(' ');
     const todo = wa.messages.filter(x => x.status === 'pending').length;
     if (!todo) { renderWaResult(true); $('waGo').hidden = true; return; }
     $('waGo').disabled = false;
   } catch (e) {
-    unmark(); busy(false); wset(0, 'Não consegui abrir a conversa: ' + (e.message || e) + '.', true);
+    unmark(); busy(false); convs.forEach(c => c.zip.close().catch(() => {})); wa = null;
+    wset(0, 'Não consegui abrir a conversa: ' + (e.message || e) + '.', true);
   }
 }
 
 function renderWaSummary() {
   const { parsed } = wa, c = parsed.counts, li = t => { const x = document.createElement('li'); x.textContent = t; $('waStats').append(x); };
   const n = (k, one, many) => c[k] ? li(`${c[k].toLocaleString('pt-BR')} ${c[k] === 1 ? one : many}`) : 0;
+  if (wa.convs.length > 1) li(`${wa.convs.length} conversas`);
   li(`${parsed.messages.length.toLocaleString('pt-BR')} ${parsed.messages.length === 1 ? 'mensagem' : 'mensagens'}`);
   n('audio', 'áudio', 'áudios'); n('video', 'vídeo', 'vídeos'); n('imagem', 'imagem', 'imagens');
   const other = c.documento + c.figurinha + c.contato + c.outro;
@@ -621,26 +735,43 @@ async function runWa() {
   const language = $('waLang').value;
   $('waGo').disabled = true; $('waRetry').disabled = true; $('waStop').hidden = false; $('waStop').disabled = false; $('waStop').textContent = 'Parar';
   busy(true); mark('processando as mídias');
-  const onProgress = (done, total) => wset(total ? 100 * done / total : 100, `Processando as mídias… ${done} de ${total}`);
+  const left = c => c.messages.filter(m => m.file && (m.status === 'pending' || m.status === 'error')).length;
+  const grand = wa.convs.reduce((a, c) => a + left(c), 0);
+  let base = 0;
+  const show = done => wset(grand ? 100 * (base + done) / grand : 100, `Processando as mídias… ${base + done} de ${grand}`);
   try {
-    onProgress(0, 1);
-    const r = await withKey(key => processMedia(wa.zip, wa.messages, { url: GEMINI_URL, language, key, onProgress, control: ctl }));
+    show(0);
+    let stopped = false;
+    for (const c of wa.convs) {
+      const n = left(c); if (!n) continue;
+      const r = await withKey(key => processMedia(c.zip, c.messages, { url: GEMINI_URL, language, key, onProgress: show, control: ctl }));
+      if (r.stopped) { stopped = true; break; }
+      base += n;
+    }
     unmark(); busy(false);
-    wset(0, r.stopped ? 'Processamento interrompido. O que já ficou pronto está abaixo; aperte "Processar conversa" para continuar.' : '');
-    $('waGo').hidden = !r.stopped; $('waGo').textContent = 'Continuar processamento';
+    wset(0, stopped ? 'Processamento interrompido. O que já ficou pronto está abaixo; aperte "Processar conversa" para continuar.' : '');
+    $('waGo').hidden = !stopped; $('waGo').textContent = 'Continuar processamento';
   } catch (e) {
-    unmark(); busy(false); wset(0, 'Erro ao processar: ' + (e.message || e) + '. O que já ficou pronto está abaixo.', true);
-    $('waGo').hidden = false; $('waGo').textContent = RETRY;
+    unmark(); busy(false);
+    if (e instanceof LimitError) {
+      wset(0, e.message + '. O que já ficou pronto está abaixo. Amanhã (ou com um código de liberação) aperte "Continuar processamento" para seguir.', true);
+      $('waGo').hidden = false; $('waGo').textContent = 'Continuar processamento';
+    } else {
+      wset(0, 'Erro ao processar: ' + (e.message || e) + '. O que já ficou pronto está abaixo.', true);
+      $('waGo').hidden = false; $('waGo').textContent = RETRY;
+    }
   }
   $('waGo').disabled = false; $('waRetry').disabled = false; $('waStop').hidden = true;
   renderWaResult($('waResult').hidden);   // refaz a lista sem perder os filtros já usados
 }
 
-const filters = () => ({ sender: $('fSender').value, from: $('fFrom').value, to: $('fTo').value, q: $('fQ').value });
+const filters = () => ({ conv: $('fConv').value, sender: $('fSender').value, from: $('fFrom').value, to: $('fTo').value, q: $('fQ').value });
 
 function renderWaResult(first) {
   const { parsed, messages } = wa;
   if (first) {
+    const cs = $('fConv'); cs.length = 1; cs.value = ''; $('fConvWrap').hidden = wa.convs.length < 2;
+    wa.convs.forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; cs.append(o); });
     const sel = $('fSender'); sel.length = 1; sel.value = '';
     parsed.senders.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.append(o); });
     $('fFrom').min = $('fTo').min = parsed.firstDate; $('fFrom').max = $('fTo').max = parsed.lastDate;
@@ -670,6 +801,7 @@ function refreshWa(keepLimit) {
     const t = document.createElement('time'); t.textContent = `${brDate(m.date)} ${m.time}`;
     const who = document.createElement('span'); who.className = 'who'; who.textContent = m.sender;
     const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = TYPE_LABEL[m.kind] || m.kind;
+    if (wa.convs.length > 1) { const cv = document.createElement('span'); cv.className = 'tag'; cv.textContent = m.conv; meta.append(cv); }
     meta.append(t, who, tag);
     const body = document.createElement('div'); body.className = 'body'; body.textContent = lineContent(m);
     li.append(meta, body); frag.append(li);
@@ -686,7 +818,7 @@ function refreshWa(keepLimit) {
   $('waMdAll').hidden = !on;
   $('waCopy').textContent = on ? 'Copiar texto filtrado' : 'Copiar texto';
 }
-['fSender', 'fFrom', 'fTo'].forEach(id => $(id).addEventListener('change', () => refreshWa()));
+['fConv', 'fSender', 'fFrom', 'fTo'].forEach(id => $(id).addEventListener('change', () => refreshWa()));
 $('fQ').addEventListener('input', () => refreshWa());
 
 const downloadText = (name, content, type) => {
@@ -702,7 +834,7 @@ const exportMd = all => {
 $('waMd').onclick = () => exportMd(false);
 $('waMdAll').onclick = () => exportMd(true);
 $('waCopy').onclick = async () => {
-  const t = waShown.map(formatLine).join('\n'), b = $('waCopy'), idle = b.textContent;
+  const t = toTranscript(waShown), b = $('waCopy'), idle = b.textContent;
   try { await navigator.clipboard.writeText(t); } catch (_) { const a = document.createElement('textarea'); a.value = t; document.body.append(a); a.select(); document.execCommand('copy'); a.remove(); }
   b.textContent = 'Copiado!'; setTimeout(() => { b.textContent = idle; }, 2000);
 };

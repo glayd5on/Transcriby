@@ -11,5 +11,15 @@ keep_vars = true
 binding = "ABUSE_KV"
 id = "b1d4570b7950484898fc3adebe9a17a0"
 
+# Contador do limite diário de uso (cloudflare/limits.js). Durable Object com SQLite, disponível no plano grátis.
+# Não precisa criar nada no painel: a Cloudflare cria na primeira publicação.
+[[durable_objects.bindings]]
+name = "USAGE"
+class_name = "UsageCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UsageCounter"]
+
 # Enable isolated previews for pull requests.
 [previews]

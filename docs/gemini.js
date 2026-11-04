@@ -39,6 +39,24 @@ export function toWav(samples) {
 
 export class NeedKey extends Error {}
 
+/** Limite diário do site (ou muitas tentativas de código): repetir não adianta. */
+export class LimitError extends Error {
+  constructor(msg, code) { super(String(msg || "limite de uso atingido").replace(/\.$/, "")); this.code = code; }
+}
+
+// Código de liberação (sem limite diário). O site guarda no aparelho e manda em todo pedido.
+let unlimitedCode = "";
+export const setUnlimitedCode = (c) => { unlimitedCode = String(c || "").trim(); };
+const codeHeader = () => (unlimitedCode ? { "X-Unlimited-Code": unlimitedCode } : {});
+
+/** Quanto já foi usado hoje (não gasta nada). Devolve null se o servidor não responder. */
+export async function getQuota(url) {
+  try {
+    const r = await fetch(`${url}?mode=quota`, { method: "POST", headers: codeHeader(), body: "" });
+    return r.ok ? await r.json() : null;
+  } catch (_) { return null; }
+}
+
 /** "MM:SS", "H:MM:SS" ou segundos soltos -> segundos (ou null se não der para ler). */
 export function parseTime(v) {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
@@ -73,14 +91,15 @@ export async function post(url, body, headers, key, tries = 3) {
   let last;
   for (let attempt = 0; attempt < tries; attempt++) {
     try {
-      const r = await fetch(url, { method: "POST", body, headers: { ...headers, "X-Access-Key": key || "" } });
+      const r = await fetch(url, { method: "POST", body, headers: { ...headers, "X-Access-Key": key || "", ...codeHeader() } });
       if (r.status === 401) throw new NeedKey("Código de acesso incorreto.");
       const j = await r.json().catch(() => ({}));
       if (r.ok) return j;
+      if (j.code === "daily_limit" || j.code === "bad_code") throw new LimitError(j.error, j.code);
       last = new Error(j.error || `o servidor respondeu ${r.status}`);
       if (r.status >= 400 && r.status < 500 && r.status !== 429) { last.noRetry = true; throw last; }   // erro do pedido: repetir não adianta
     } catch (e) {
-      if (e instanceof NeedKey || e.noRetry) throw e;
+      if (e instanceof NeedKey || e instanceof LimitError || e.noRetry) throw e;
       last = e;
     }
     if (attempt + 1 < tries) await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
@@ -126,7 +145,7 @@ export async function describeImage(blob, mime, { url, key }) {
 /** Uma pergunta ao Reo. Só texto: pergunta, conversa anterior e a transcrição do arquivo atual.
  *  Com onText, a resposta chega aos poucos: onText(textoAteAgora) é chamado a cada pedaço. Devolve o texto final. */
 export async function askReo({ message, history, transcript }, { url, key, session, onText }) {
-  const headers = { "Content-Type": "application/json", "X-Session-Id": session || "" };
+  const headers = { "Content-Type": "application/json", "X-Session-Id": session || "", ...codeHeader() };
   if (!onText) {
     const j = await post(`${url}?mode=chat`, JSON.stringify({ message: String(message), history, transcript }), headers, key, 1);   // 1 tentativa: cada pergunta conta no limite do servidor
     return (j.reply || "").trim();
@@ -136,6 +155,7 @@ export async function askReo({ message, history, transcript }, { url, key, sessi
   const ct = r.headers.get("Content-Type") || "";
   if (!r.ok || ct.includes("application/json")) {   // erro, bloqueio ou servidor sem suporte a fluxo: vem como JSON
     const j = await r.json().catch(() => ({}));
+    if (j.code === "daily_limit" || j.code === "bad_code") throw new LimitError(j.error, j.code);
     if (!r.ok) throw new Error(j.error || `o servidor respondeu ${r.status}`);
     const t = (j.reply || "").trim(); onText(t); return t;
   }

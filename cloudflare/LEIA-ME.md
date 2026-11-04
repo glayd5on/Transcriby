@@ -68,3 +68,18 @@ só sem o alerta e com um freio mais fraco (na memória do Worker). Para ligar t
 
 Regras: 5 tentativas suspeitas em 10 minutos (por IP ou por sessão) => alerta no Telegram e bloqueio do IP por 1 hora.
 Limite geral de 40 mensagens por IP em 10 minutos. O contador do KV não é atômico: em rajadas muito rápidas pode contar um pouco a menos.
+
+## Limite diário e código de liberação
+
+O código está em `cloudflare/limits.js`. Cada pessoa (por IP) e o site inteiro têm um limite por dia, em **minutos de uso**:
+o áudio conta pela duração, cada foto vale 0,2 min e cada resumo ou pergunta ao Reo vale 2 min. Zera à meia-noite de Brasília.
+Padrões: 300 min por pessoa e 3.000 min para o site todo. Para trocar, crie as variáveis de texto `DAILY_LIMIT_IP_MIN` e
+`DAILY_LIMIT_SITE_MIN` no Cloudflare (Settings, Variables and Secrets).
+
+- **Contador:** um Durable Object chamado `USAGE`, declarado no `wrangler.toml` (não precisa criar nada no painel).
+  Sem ele o Worker usa a memória (freio fraco) e o `?status` mostra `contador_ligado: false`.
+- **Código de liberação (sem limite):** crie o segredo `UNLIMITED_CODES` com um ou mais códigos separados por vírgula
+  (cada um com pelo menos 8 caracteres; use letras e números sem sentido). Quem digita o código no rodapé do site, ou abre o
+  link `https://SEU-SITE/?liberar=CODIGO`, fica sem limite naquele aparelho. Para cancelar um código, tire ele do segredo.
+- Errar o código mais de 10 vezes por hora bloqueia o IP por 1 hora.
+- O Worker também só aceita pedidos vindos do site (cabeçalho `Origin` em `ALLOWED_ORIGIN` ou nos endereços do site).
