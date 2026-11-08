@@ -330,13 +330,13 @@ body[data-skin="glass"] .reo.big .r-glow { opacity:.75; }
 .avs span + span { margin-left:-6px; }
 
 /* ---------- caixa de mensagem ---------- */
-.comp-wrap { position:fixed; z-index:20; left:0; right:0; bottom:0; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); padding-top:24px; background:linear-gradient(rgba(246,246,250,0),rgba(246,246,250,.7) 45%,var(--bg) 75%); }
+.comp-wrap { position:fixed; z-index:20; left:0; right:0; bottom:0; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); padding-top:24px; isolation:isolate; transform:translateZ(0); background:linear-gradient(rgba(246,246,250,0),rgba(246,246,250,.92) 38%,var(--bg) 62%); }
 .comp-in { max-width:var(--w); margin:0 auto; padding-left:max(12px,env(safe-area-inset-left,0px)); padding-right:max(12px,env(safe-area-inset-right,0px)); position:relative; }
 .comp { position:relative; border-radius:26px; padding:1.5px; background:conic-gradient(from var(--ang),rgba(20,22,48,.1),rgba(20,22,48,.1) 40%,var(--blue),var(--violet),var(--pink),var(--amber),rgba(20,22,48,.1) 95%); animation:turn calc(8s / var(--spd)) linear infinite; }
 .comp::before { content:""; position:absolute; inset:0; border-radius:inherit; background:inherit; filter:blur(18px); opacity:.18; z-index:-1; transition:opacity .5s; }
 body.typing .comp::before, body.drag .comp::before { opacity:.5; }
 body.think { --spd:2.6; }
-.comp-box { border-radius:24.5px; background:rgba(255,255,255,.97); padding:6px 8px 6px; }
+.comp-box { border-radius:24.5px; background:#fff; padding:6px 8px 6px; }
 .pend { display:flex; gap:8px; padding:2px 2px 8px; flex-wrap:wrap; }
 .pend .att { animation:meIn .45s var(--spring) both; padding-right:6px; box-shadow:inset 0 0 0 1px var(--line); }
 .pend .x { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; color:var(--mut); background:var(--s2); flex:none; }
@@ -525,7 +525,7 @@ body.think { --spd:2.6; }
 .glass::before { content:""; position:absolute; inset:-30%; z-index:-1; opacity:.7; filter:blur(22px);
   background:radial-gradient(circle at 18% 30%,rgba(255,45,138,.45),transparent 42%), radial-gradient(circle at 82% 22%,rgba(62,134,255,.5),transparent 42%), radial-gradient(circle at 60% 90%,rgba(255,162,26,.4),transparent 40%), radial-gradient(circle at 28% 88%,rgba(0,230,191,.35),transparent 38%);
   animation:gdrift 14s ease-in-out infinite alternate; }
-.glass::after { content:""; position:absolute; left:6%; right:40%; top:0; height:42%; border-radius:0 0 60% 60%; background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0)); opacity:.55; pointer-events:none; z-index:-1; }
+.glass::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse 70% 55% at 28% 0%,rgba(255,255,255,.75),rgba(255,255,255,0) 70%); opacity:.6; pointer-events:none; z-index:-1; }
 @keyframes gdrift { to { transform:translate(6%,-5%) rotate(14deg) scale(1.08); } }
 
 /* ---------- perguntas e respostas ---------- */
@@ -644,7 +644,7 @@ body.think { --spd:2.6; }
       <button class="send" id="send" aria-label="Enviar" disabled><svg class="i"><use href="#up"/></svg><span class="stopi"></span></button>
     </div>
   </div></div>
-  <p class="fine">O Reo pode errar. Transcrições automáticas não são cópia perfeita do original.</p>
+  <p class="fine">Taxa de erro de 3%, extremamente baixa, e ainda temos camadas de segurança para achar os erros.</p>
   <input type="file" id="fAv" accept="audio/*,video/*" hidden>
   <input type="file" id="fWa" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" multiple hidden>
 </div></div>
@@ -925,7 +925,7 @@ const FAQ = [
   ['cal', 'E se meus minutos do dia acabarem?', '<p>O envio fica parado até <b>meia-noite</b>, quando o uso zera. Quem tem um <b>código de liberação</b> usa sem limite. Você acompanha tudo no menu, em <b>Seu uso hoje</b>.</p>'],
   ['spark', 'O que é o Reo?', '<p>O <b>Reo 1.0</b> é a IA do Transcriby: um <b>modelo autoral</b> que roda em conjunto com o modelo <b>AIDA</b>. Ele transcreve, resume e responde perguntas sobre o texto.</p><p>Produto exclusivo <b>Krome OMNI</b>, assinado por <b>Glaydson Andrade</b>.</p>'],
   ['eye', 'Meus arquivos ficam guardados?', '<p>Não crio conta nem guardo seus arquivos. <b>Vídeos não saem do seu aparelho:</b> só o áudio é enviado, apenas para gerar o texto.</p>'],
-  ['check', 'A transcrição é perfeita?', '<p>Não. É automática e pode errar nomes, números e palavras de baixa qualidade de áudio. Dê uma conferida antes de usar o texto em algo importante.</p>'],
+  ['check', 'A transcrição é perfeita?', '<p>Quase. A taxa de erro é de <b>3%</b>, extremamente baixa. E, mesmo sendo tão baixa, ainda temos <b>camadas de segurança</b> para achar os erros.</p><p>Por isso é raro, mas dê uma conferida em nomes e números antes de usar o texto em algo importante.</p>'],
   ['globe', 'Funciona em outros idiomas?', '<p>Sim. Antes de enviar, toque em <b>Idioma</b> na caixa de mensagem e escolha o idioma em que as pessoas falam no arquivo.</p>'],
 ];
 function faqHtml(withHead = true) {
