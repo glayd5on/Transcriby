@@ -212,8 +212,8 @@ body.typing .hello .halo { opacity:.6; inset:-60%; }
 .btn.sec { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 1px var(--line), var(--sh); }
 .btn:disabled { opacity:.5; }
 .btn span, .btn .i { position:relative; z-index:1; }
-.avs { display:flex; }
-.avs span { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font:600 10.5px var(--ui); color:#fff; box-shadow:0 0 0 2px var(--paper); animation:popIn .5s var(--spring) both; }
+.avs { display:flex; flex:none; }
+.avs span { flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font:600 10.5px var(--ui); color:#fff; box-shadow:0 0 0 2px var(--paper); animation:popIn .5s var(--spring) both; }
 .avs span + span { margin-left:-6px; }
 
 /* ---------- caixa de mensagem ---------- */
@@ -281,6 +281,8 @@ body.think { --spd:2.6; }
 .reo-card .orbbox { width:72px; height:72px; }
 .reo-card h3 { display:flex; align-items:center; gap:8px; }
 .reo-card p { margin:0; color:var(--mut); max-width:40ch; }
+.reo-card .by { display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; background:var(--s2); color:var(--ink2); font-size:14px; }
+.reo-card .by b { font-weight:600; color:var(--ink); }
 .feats { display:grid; gap:2px; margin:4px 0 8px; }
 .feat { display:flex; gap:12px; align-items:center; padding:10px 4px; font-size:14.5px; animation:msgIn .4s var(--ease) both; }
 .feat:nth-child(2) { animation-delay:.06s; } .feat:nth-child(3) { animation-delay:.12s; }
@@ -672,7 +674,8 @@ function closeSheet(instant) { if (sheetOpen) sheetOpen.close(instant); }
 function modelSheet() {
   openSheet(`<div class="reo-card"><div class="orbbox"><div class="halo"></div><div class="orb"></div></div>
     <h3>Reo <span class="ver">1.0</span></h3>
-    <p>O Reo é a IA do Transcriby. Foi treinado para entender melhor os áudios, captar as nuances da fala e conseguir explicar o que ouviu. Roda em conjunto com o modelo Argon.</p></div>
+    <p>O Reo é a IA do Transcriby. Foi treinado para entender melhor os áudios, captar as nuances da fala e conseguir explicar o que ouviu. Roda em conjunto com o modelo Argon.</p>
+    <p class="by">${I('user', 'sm')}<span>Criado por <b>Glaydson Andrade</b></span></p></div>
     <div class="feats">
       <div class="feat"><span class="tile c-violet">${EQ()}</span><span>Transcreve áudio e vídeo, palavra por palavra</span></div>
       <div class="feat"><span class="tile c-mint">${I('chat')}</span><span>Organiza conversas do WhatsApp por data e pessoa</span></div>
@@ -698,7 +701,7 @@ $('openLang').onclick = () => langSheet();
 
 /* ===================== tela inicial ===================== */
 function hello() {
-  const hr = new Date().getHours(), g = hr < 5 ? 'Boa noite' : hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite';
+  const hr = new Date().getHours(), g = hr < 5 ? 'Boa madrugada' : hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite';
   const words = (g + '. O que vamos').split(' ');
   const h1 = words.map((w, i) => `<span class="w" style="animation-delay:${i * .07}s">${w}</span>`).join(' ') +
     ` <span class="w grad" style="animation-delay:${words.length * .07}s">transcrever</span><span class="w" style="animation-delay:${words.length * .07 + .07}s">?</span>`;
@@ -1106,7 +1109,7 @@ let waShown = [], waLimit = 300;
 const waFilters = { conv: '', sender: '', from: '', to: '', q: '' };
 const AVC = ['#3D63FF', '#7B4DFF', '#F0438C', '#E5851C', '#10A98F', '#0EA5E9', '#9333EA'];
 const avColor = s => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AVC[h % AVC.length]; };
-const initials = s => String(s).trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+const initials = s => String(s).trim().split(/\s+/).map(w => w.replace(/^[^\p{L}\p{N}]+/u, '')).filter(Boolean).slice(0, 2).map(w => [...w][0]).join('').toUpperCase() || '?';
 const KIND_ICON = { texto: 'chat', audio: 'mic', video: 'video', imagem: 'image', documento: 'file', figurinha: 'image', contato: 'user', outro: 'file', sistema: 'help' };
 
 // Junta as conversas num só objeto (contagens somadas, período total, mensagens uma conversa depois da outra).
