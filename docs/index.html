@@ -79,7 +79,7 @@ main { position:relative; z-index:1; max-width:var(--w); margin:0 auto; padding-
 #thread { display:flex; flex-direction:column; gap:22px; }
 
 /* tela inicial */
-.hello { min-height:calc(100svh - 290px); display:flex; flex-direction:column; justify-content:flex-end; gap:22px; padding-bottom:8px; }
+.hello { min-height:calc(100svh - 290px); display:flex; flex-direction:column; justify-content:flex-end; gap:22px; padding:46px 0 8px; }
 @keyframes breathe { 50% { transform:scale(1.06); } }
 
 /* ---------- logo do Reo: esfera viva com ondas de som ----------
@@ -92,21 +92,25 @@ main { position:relative; z-index:1; max-width:var(--w); margin:0 auto; padding-
   background:conic-gradient(from var(--ang), transparent 0 52%, var(--violet) 76%, var(--pink) 92%, #fff 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; }
 .r-ball { position:absolute; inset:0; border-radius:50%; overflow:hidden; transform:translateZ(0); -webkit-mask-image:-webkit-radial-gradient(white,black);
-  background:radial-gradient(circle at 50% 38%,#9272FF,#4660FF 72%); box-shadow:0 .1em .34em -.06em rgba(123,77,255,.6);
-  animation:rbreathe 3.6s ease-in-out infinite; }
+  background:radial-gradient(circle at 50% 40%,#7A5CFF,#2B2FE0 58%,#150C66 100%); box-shadow:0 .1em .34em -.06em rgba(90,50,255,.7);
+  animation:rbreathe 3.6s ease-in-out infinite, rhue 11s ease-in-out infinite; }
+/* magma: núcleo que pulsa, manchas que se deformam e as cores que mudam devagar */
+.r-core { inset:-12%; border-radius:50%; mix-blend-mode:screen; background:radial-gradient(circle at 50% 56%,rgba(255,220,150,.95),rgba(255,92,158,.55) 38%,rgba(255,92,158,0) 68%); animation:rpulse 2.6s ease-in-out infinite; }
+.r-tint { inset:0; border-radius:50%; opacity:0; transition:opacity .7s; background:radial-gradient(circle at 50% 60%,var(--tn,transparent),transparent 80%); }
 .r-b { inset:0; }
-.r-b::before { content:""; position:absolute; left:50%; top:50%; width:.72em; height:.72em; margin:-.36em 0 0 -.36em; border-radius:50%; background:var(--c); filter:blur(.15em); transform:translate(var(--ox),var(--oy)); }
-.r-b1 { --c:#FF4F9A; --ox:.24em; --oy:-.12em; animation:rspin 6s linear infinite; }
-.r-b2 { --c:#FFB347; --ox:-.26em; --oy:.14em; animation:rspin 9s linear infinite reverse; }
-.r-b3 { --c:#35E0C0; --ox:.04em; --oy:.3em; animation:rspin 12s linear infinite; }
-.r-b3::before { width:.5em; height:.5em; margin:-.25em 0 0 -.25em; }
-.r-b4 { --c:#6F8BFF; --ox:-.16em; --oy:-.28em; animation:rspin 8s linear infinite reverse; }
-.r-bars { left:50%; top:50%; width:.5em; height:.4em; margin:-.2em 0 0 -.25em; display:flex; gap:.045em; align-items:center; justify-content:center; transform:translate(calc(var(--tx,0)*.035em),calc(var(--ty,0)*.035em)); }
+.r-b::before { content:""; position:absolute; left:50%; top:50%; width:.78em; height:.78em; margin:-.39em 0 0 -.39em; border-radius:50%; background:var(--c); filter:blur(.09em); transform:translate(var(--ox),var(--oy)); animation:rwob var(--wd,5s) ease-in-out infinite; }
+.r-b1 { --c:#FF2D8A; --ox:.24em; --oy:-.12em; --wd:4.6s; animation:rspin 6s linear infinite; }
+.r-b2 { --c:#FFA21A; --ox:-.26em; --oy:.14em; --wd:6.2s; animation:rspin 9s linear infinite reverse; }
+.r-b2::before { animation-delay:-2s; }
+.r-b3 { --c:#00E6BF; --ox:.04em; --oy:.3em; animation:rspin 12s linear infinite; }
+.r-b3::before { width:.54em; height:.54em; margin:-.27em 0 0 -.27em; animation-delay:-3.4s; }
+.r-b4 { --c:#3E86FF; --ox:-.16em; --oy:-.28em; --wd:5.4s; animation:rspin 8s linear infinite reverse; }
+.r-bars { left:50%; top:50%; width:.5em; height:.4em; margin:-.2em 0 0 -.25em; display:flex; gap:.045em; align-items:center; justify-content:center; transform:translate(calc(var(--tx,0)*.035em),calc(var(--ty,0)*.035em)); transition:opacity .4s, scale .55s var(--spring), filter .4s; }
 .r-bars b { display:block; position:relative; width:.058em; height:100%; border-radius:.06em; background:#fff; box-shadow:0 0 .07em rgba(255,255,255,.9); transform:scaleY(.3); animation:rbar 1.15s ease-in-out infinite; }
 .r-bars b:nth-child(1) { height:46%; animation-delay:-.2s; } .r-bars b:nth-child(2) { height:80%; animation-delay:-.7s; } .r-bars b:nth-child(3) { height:100%; animation-delay:-.45s; }
 .r-bars b:nth-child(4) { height:74%; animation-delay:-.95s; } .r-bars b:nth-child(5) { height:50%; animation-delay:-.1s; }
 .r-shine { inset:0; border-radius:50%; background:
-  radial-gradient(circle at calc(31% + var(--tx,0)*7%) calc(24% + var(--ty,0)*7%), rgba(255,255,255,.88), rgba(255,255,255,0) 34%),
+  radial-gradient(circle at calc(31% + var(--tx,0)*7%) calc(24% + var(--ty,0)*7%), rgba(255,255,255,.6), rgba(255,255,255,0) 30%),
   radial-gradient(circle at calc(72% - var(--tx,0)*5%) calc(86% - var(--ty,0)*5%), rgba(30,10,90,.4), rgba(30,10,90,0) 56%);
   box-shadow:inset -.07em -.09em .2em rgba(25,10,90,.38), inset .05em .06em .14em rgba(255,255,255,.5); }
 .r-rip { inset:0; border-radius:50%; border:.035em solid rgba(123,77,255,.55); pointer-events:none; animation:rrip 1.4s ease-out forwards; }
@@ -118,9 +122,81 @@ body.think .model .r-ring, body.think #thread > .ai:last-child .r-ring { opacity
 body.think .r-bars b { animation-duration:.55s; }
 #thread > .ai:not(:last-child) .reo * { animation-play-state:paused; }
 .reo.sm .r-b4 { display:none; }
+
+/* rostos: de vez em quando as ondas viram um rosto (curtindo, raiva, triste, curioso). A página toda comanda pelo body[data-face],
+   então todas as logos mudam juntas. Cada rosto é só uma lista de medidas; as peças trocam de forma com transição. */
+.r-face { left:50%; top:50%; width:.6em; height:.5em; margin:-.25em 0 0 -.3em; opacity:0; scale:.35; rotate:-25deg; filter:blur(.05em) drop-shadow(0 0 .04em rgba(255,255,255,.75)); pointer-events:none;
+  --eg:.1em; --ey:0em; --ew:.058em; --eh:.3em; --er:.06em; --ebt:0em; --ebg:#fff; --e2s:1; --er1:0deg; --er2:0deg;
+  --bo:0; --b1r:0deg; --b2r:0deg; --b1y:-.1em; --b2y:-.1em; --bg:.1em;
+  --mw:.1em; --mh:.02em; --my:.14em; --mr:.1em; --mbg:#fff; --mbt:0em; --mbs:0em; --mo:0;
+  transition:opacity .45s, scale .65s var(--spring), rotate .65s var(--spring), filter .45s; }
+.r-face i { transition:width .5s var(--ease), height .5s var(--ease), border-radius .5s var(--ease), background .4s, border-width .5s var(--ease), translate .55s var(--spring), rotate .55s var(--spring), scale .5s var(--spring), opacity .4s; }
+.r-e { left:50%; top:50%; width:var(--ew); height:var(--eh); border:0 solid #fff; border-top-width:var(--ebt); border-radius:var(--er); background:var(--ebg); }
+.r-e1 { translate:calc(-50% - var(--eg)) calc(-50% + var(--ey)); rotate:var(--er1); }
+.r-e2 { translate:calc(-50% + var(--eg)) calc(-50% + var(--ey)); rotate:var(--er2); scale:var(--e2s); }
+.r-fb { left:50%; top:50%; width:.14em; height:.036em; border-radius:.03em; background:#fff; opacity:var(--bo); }
+.r-fb1 { translate:calc(-50% - var(--bg)) calc(-50% + var(--b1y)); rotate:var(--b1r); }
+.r-fb2 { translate:calc(-50% + var(--bg)) calc(-50% + var(--b2y)); rotate:var(--b2r); }
+.r-m { left:50%; top:50%; width:var(--mw); height:var(--mh); translate:-50% calc(-50% + var(--my)); border:solid #fff; border-width:var(--mbt) var(--mbs) var(--mbs) var(--mbs); border-radius:var(--mr); background:var(--mbg); opacity:var(--mo); }
+.r-ft { left:50%; top:50%; width:.04em; height:.065em; margin:.03em 0 0 -.14em; border-radius:50% 50% 50% 50% / 62% 62% 38% 38%; background:#CDE8FF; opacity:0; }
+.r-nt { left:70%; top:6%; font:700 .3em/1 var(--ui,sans-serif); color:var(--violet); opacity:0; pointer-events:none; }
+.r-nt::before { content:var(--ch,""); }
+.r-n2 { left:2%; top:14%; }
+.reo.sm .r-nt { display:none; }
+body[data-face] .r-bars { opacity:0; scale:.3; filter:blur(.06em); }
+body[data-face] .r-face { opacity:1; scale:1; rotate:0deg; filter:blur(0) drop-shadow(0 0 .04em rgba(255,255,255,.75)); }
+body[data-face] .r-tint { opacity:1; }
+
+body[data-face="happy"] .r-face { --eg:.105em; --ey:-.06em; --ew:.13em; --eh:.075em; --er:.13em .13em 0 0; --ebt:.045em; --ebg:transparent; --mw:.25em; --mh:.125em; --my:.1em; --mr:0 0 .25em .25em / 0 0 .125em .125em;
+  --mbg:radial-gradient(.09em .06em at 50% 100%,#FF6F9F 96%,transparent) bottom/100% 100% no-repeat,#fff; --mo:1; animation:rbob .62s ease-in-out infinite; }
+body[data-face="happy"] .r-tint { --tn:rgba(255,130,150,.5); }
+body[data-face="happy"] .r-core { animation-duration:1.3s; }
+body[data-face="happy"] .r-n1 { --ch:"♪"; animation:rnote 2.2s ease-out infinite; }
+body[data-face="happy"] .r-n2 { --ch:"♫"; animation:rnote 2.2s ease-out 1.1s infinite; }
+
+body[data-face="angry"] .r-face { --eg:.1em; --ey:.02em; --ew:.075em; --eh:.075em; --er:50%; --bo:1; --b1r:24deg; --b2r:-24deg; --b1y:-.07em; --b2y:-.07em; --bg:.1em;
+  --mw:.2em; --mh:.04em; --my:.14em; --mr:.03em; --mo:1; animation:rshake .2s linear infinite; }
+body[data-face="angry"] .r-tint { --tn:rgba(255,40,70,.8); }
+body[data-face="angry"] .r-core { animation-duration:.9s; }
+body[data-face="angry"] .r-ball { animation-duration:.7s, 4s; }
+
+body[data-face="sad"] .r-face { --eg:.1em; --ey:.04em; --ew:.07em; --eh:.085em; --er:50%; --bo:1; --b1r:-20deg; --b2r:20deg; --b1y:-.06em; --b2y:-.06em; --bg:.1em;
+  --mw:.17em; --mh:.08em; --my:.17em; --mr:.17em .17em 0 0 / .08em .08em 0 0; --mbg:transparent; --mbt:.042em; --mo:1; }
+body[data-face="sad"] .r-tint { --tn:rgba(50,80,210,.85); }
+body[data-face="sad"] .r-core { animation-duration:5.5s; }
+body[data-face="sad"] .r-ball { animation-duration:6s, 14s; }
+body[data-face="sad"] .r-ft { opacity:1; animation:rtear 1.9s ease-in infinite; }
+
+body[data-face="curious"] .r-face { --eg:.1em; --ey:0em; --ew:.1em; --eh:.1em; --er:50%; --e2s:.7; --bo:1; --b1y:-.1em; --b2y:-.19em; --b2r:-14deg; --bg:.1em;
+  --mw:.075em; --mh:.095em; --my:.15em; --mr:50%; --mbg:transparent; --mbt:.036em; --mbs:.036em; --mo:1; rotate:-9deg; }
+body[data-face="curious"] .r-tint { --tn:rgba(60,220,200,.55); }
+body[data-face="curious"] .r-e { animation:rlook 2.4s ease-in-out infinite; }
+body[data-face="curious"] .r-n1 { --ch:"?"; left:72%; top:2%; animation:rnote 2.4s ease-out infinite; }
+/* pele "vidro": esfera translúcida de vidro colorido (liga com body[data-skin="glass"]) */
+body[data-skin="glass"] .r-ball { background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.2),rgba(255,255,255,.05) 70%); animation:rbreathe 3.6s ease-in-out infinite;
+  box-shadow:inset 0 0 0 .025em rgba(255,255,255,.95), inset 0 .07em .2em rgba(255,255,255,.85), inset 0 -.12em .22em rgba(255,60,170,.4), inset .1em 0 .18em rgba(70,140,255,.35), 0 .14em .4em -.1em rgba(110,70,255,.55); }
+body[data-skin="glass"] .r-b::before { opacity:.85; filter:blur(.07em); }
+body[data-skin="glass"] .r-core { opacity:.8; }
+body[data-skin="glass"] .r-shine { background:
+  radial-gradient(ellipse 34% 20% at calc(34% + var(--tx,0)*6%) calc(21% + var(--ty,0)*6%), rgba(255,255,255,.95), rgba(255,255,255,0)),
+  radial-gradient(ellipse 52% 18% at 50% 93%, rgba(255,255,255,.55), rgba(255,255,255,0)),
+  radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 62%, rgba(255,255,255,.4) 100%);
+  box-shadow:none; }
+body[data-skin="glass"] .r-bars b { box-shadow:0 0 .08em rgba(255,255,255,1), 0 .01em .05em rgba(50,20,160,.45); }
+body[data-skin="glass"] .r-face { filter:blur(.05em) drop-shadow(0 0 .04em rgba(255,255,255,.9)) drop-shadow(0 .01em .03em rgba(50,20,160,.5)); }
+body[data-skin="glass"][data-face] .r-face { filter:blur(0) drop-shadow(0 0 .04em rgba(255,255,255,.9)) drop-shadow(0 .01em .03em rgba(50,20,160,.5)); }
+body[data-skin="glass"] .reo.big .r-glow { opacity:.75; }
 @keyframes rspin { to { transform:rotate(360deg); } }
 @keyframes rbreathe { 50% { transform:translateZ(0) scale(1.05); } }
 @keyframes rbar { 50% { transform:scaleY(1); } }
+@keyframes rpulse { 0%,100% { scale:.62; opacity:.35; translate:0 0; } 30% { scale:1.12; opacity:.92; translate:.07em -.06em; } 60% { scale:.84; opacity:.55; translate:-.08em .05em; } 80% { scale:1; opacity:.75; translate:.03em .08em; } }
+@keyframes rwob { 0%,100% { scale:1; border-radius:50%; } 33% { scale:1.35 .8; border-radius:62% 38% 55% 45% / 45% 60% 40% 55%; } 66% { scale:.78 1.28; border-radius:40% 60% 38% 62% / 58% 42% 60% 40%; } }
+@keyframes rhue { 0%,100% { filter:hue-rotate(0deg) saturate(1.5); } 33% { filter:hue-rotate(-24deg) saturate(1.8); } 66% { filter:hue-rotate(26deg) saturate(1.65); } }
+@keyframes rbob { 50% { translate:0 -.03em; } }
+@keyframes rshake { 0% { translate:.01em 0; } 25% { translate:-.01em .008em; } 50% { translate:.008em -.01em; } 75% { translate:-.008em .006em; } 100% { translate:.01em 0; } }
+@keyframes rtear { 0% { translate:0 0; opacity:0; } 20% { opacity:1; } 100% { translate:-.01em .22em; opacity:0; } }
+@keyframes rlook { 0%,100% { margin-left:0; } 30% { margin-left:.035em; } 65% { margin-left:-.03em; } }
+@keyframes rnote { 0% { opacity:0; translate:0 .1em; scale:.6; rotate:0deg; } 20% { opacity:1; } 100% { opacity:0; translate:.1em -.45em; scale:1.1; rotate:16deg; } }
 @keyframes rrip { from { transform:scale(1); opacity:.9; } to { transform:scale(2.9); opacity:0; } }
 @keyframes rform { from { transform:scale(.15) rotate(-120deg); opacity:0; filter:blur(10px); } 60% { filter:blur(0); } }
 .hello h1 { margin:0; font-weight:600; font-size:clamp(30px,8.6vw,42px); line-height:1.08; letter-spacing:-.04em; text-wrap:balance; }
@@ -314,7 +390,7 @@ body.think { --spd:2.6; }
 .radio::after { content:""; width:12px; height:12px; border-radius:50%; background:var(--spectrum); transform:scale(0); transition:transform .35s var(--spring); }
 .opt[aria-checked=true] .radio { box-shadow:inset 0 0 0 1.5px var(--violet); }
 .opt[aria-checked=true] .radio::after { transform:scale(1); }
-.reo-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; padding:8px 0 14px; }
+.reo-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; padding:26px 0 14px; }
 .reo-card h3 { display:flex; align-items:center; gap:8px; }
 .reo-card p { margin:0; color:var(--mut); max-width:40ch; }
 .reo-card .by { display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; background:var(--s2); color:var(--ink2); font-size:14px; }
@@ -417,7 +493,7 @@ body.think { --spd:2.6; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.001s !important; animation-iteration-count:1 !important; transition-duration:.001s !important; scroll-behavior:auto !important; } }
 </style>
 </head>
-<body>
+<body data-skin="glass">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <symbol id="wave" viewBox="0 0 24 24"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/></symbol>
 <symbol id="chat" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
@@ -463,7 +539,7 @@ body.think { --spd:2.6; }
 
 <header class="top"><div class="top-in">
   <button class="ibtn press" id="openDrawer" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></button>
-  <button class="model press" id="openModel" aria-label="Sobre o Reo 1.0"><span class="reo sm" style="font-size:22px" aria-hidden="true"><i class="r-glow"></i><i class="r-ring"></i><span class="r-ball"><i class="r-b r-b1"></i><i class="r-b r-b2"></i><i class="r-b r-b3"></i><i class="r-bars"><b></b><b></b><b></b><b></b><b></b></i><i class="r-shine"></i></span></span>Reo <span class="ver">1.0</span><svg class="i sm chev"><use href="#down"/></svg></button>
+  <button class="model press" id="openModel" aria-label="Sobre o Reo 1.0"><span class="reo sm" style="font-size:22px" aria-hidden="true"><i class="r-glow"></i><i class="r-ring"></i><span class="r-ball"><i class="r-core"></i><i class="r-b r-b1"></i><i class="r-b r-b2"></i><i class="r-b r-b3"></i><i class="r-tint"></i><i class="r-bars"><b></b><b></b><b></b><b></b><b></b></i><i class="r-face"><i class="r-fb r-fb1"></i><i class="r-fb r-fb2"></i><i class="r-e r-e1"></i><i class="r-e r-e2"></i><i class="r-m"></i><i class="r-ft"></i></i><i class="r-shine"></i></span><i class="r-nt r-n1"></i><i class="r-nt r-n2"></i></span>Reo <span class="ver">1.0</span><svg class="i sm chev"><use href="#down"/></svg></button>
   <button class="ibtn press" id="newChat" aria-label="Nova conversa"><svg class="i"><use href="#edit"/></svg></button>
 </div></header>
 
@@ -525,12 +601,14 @@ import { openChatZip, measureAudio, processMedia } from "./media.js";
 
 const $ = id => document.getElementById(id);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FACES = ['happy', 'angry', 'sad', 'curious'];
+let faceT = 0, lastFace = '', errAt = 0;
 const T = $('thread');
 const I = (n, c = '') => `<svg class="i ${c}"><use href="#${n}"/></svg>`;
 const EQ = (c = '') => `<span class="eqi ${c}" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Logo do Reo (esfera viva). size em px; 'big' liga o brilho, o anel e a animação de entrada.
-const REO = (size = 24, cls = '') => `<span class="reo ${size <= 30 ? 'sm ' : ''}${cls}" style="font-size:${size}px" aria-hidden="true"><i class="r-glow"></i><i class="r-ring"></i><span class="r-ball"><i class="r-b r-b1"></i><i class="r-b r-b2"></i><i class="r-b r-b3"></i>${size <= 30 ? '' : '<i class="r-b r-b4"></i>'}<i class="r-bars"><b></b><b></b><b></b><b></b><b></b></i><i class="r-shine"></i></span></span>`;
+const REO = (size = 24, cls = '') => `<span class="reo ${size <= 30 ? 'sm ' : ''}${cls}" style="font-size:${size}px" aria-hidden="true"><i class="r-glow"></i><i class="r-ring"></i><span class="r-ball"><i class="r-core"></i><i class="r-b r-b1"></i><i class="r-b r-b2"></i><i class="r-b r-b3"></i>${size <= 30 ? '' : '<i class="r-b r-b4"></i>'}<i class="r-tint"></i><i class="r-bars"><b></b><b></b><b></b><b></b><b></b></i><i class="r-face"><i class="r-fb r-fb1"></i><i class="r-fb r-fb2"></i><i class="r-e r-e1"></i><i class="r-e r-e2"></i><i class="r-m"></i><i class="r-ft"></i></i><i class="r-shine"></i></span><i class="r-nt r-n1"></i><i class="r-nt r-n2"></i></span>`;
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
 const fmtSize = b => b >= 1073741824 ? (b / 1073741824).toFixed(1).replace('.', ',') + ' GB' : b >= 1048576 ? Math.round(b / 1048576) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -776,7 +854,11 @@ function sendState() {
   b.setAttribute('aria-label', 'Enviar');
   b.disabled = !(inp.value.trim() || pending);
 }
-function setBusy(b, stop = null) { busy = b; stopFn = b ? stop : null; document.body.classList.toggle('think', b); sendState(); }
+function setBusy(b, stop = null) {
+  const was = busy; busy = b; stopFn = b ? stop : null; document.body.classList.toggle('think', b); sendState();
+  if (b) setFace('curious', 0);
+  else if (was) { clearFace(); setTimeout(() => { if (!busy && Date.now() - errAt > 1500) setFace('happy', 3000); }, 160); }
+}
 inp.addEventListener('input', () => { grow(); kick = Math.min(.5, kick + .18); });
 inp.addEventListener('focus', () => document.body.classList.add('typing'));
 inp.addEventListener('blur', () => document.body.classList.remove('typing'));
@@ -948,6 +1030,7 @@ function follows(body, list) {
   body.append(f); toEnd(); return f;
 }
 function errorBox(body, msg, buttons = []) {
+  errAt = Date.now(); setFace('sad', 5200);
   const box = el('div', 'errbox'); box.textContent = msg; body.append(box);
   if (buttons.length) {
     const row = el('div', 'erow');
@@ -1389,6 +1472,22 @@ function openConv(my) {
   q('cvCopy').onclick = async () => { const ok = await copyText(toTranscript(waShown)); toast(ok ? 'Texto copiado' : 'Não consegui copiar'); };
   render();
 }
+
+/* ---- rostos do Reo: de vez em quando as ondas viram um rosto; também reage ao que acontece (lendo = curioso, pronto = curtindo, erro = triste) ---- */
+function setFace(f, ms = 3300) {
+  if (reduce) return;
+  clearTimeout(faceT); document.body.dataset.face = f; lastFace = f;
+  if (ms) faceT = setTimeout(clearFace, ms);
+}
+function clearFace() { clearTimeout(faceT); delete document.body.dataset.face; }
+function randomFace() {
+  const b = document.body;
+  if (!document.hidden && !busy && !b.dataset.face && !b.classList.contains('typing')) {
+    const rest = FACES.filter(f => f !== lastFace); setFace(rest[Math.floor(Math.random() * rest.length)]);
+  }
+  setTimeout(randomFace, 8000 + Math.random() * 6000);
+}
+setTimeout(() => { if (!busy && !document.body.dataset.face) setFace('happy'); setTimeout(randomFace, 9000); }, 3500);
 
 /* ---- a logo reage: toque faz ondas, reflexo segue o dedo/mouse ---- */
 function ripple(o) {
