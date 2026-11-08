@@ -8,6 +8,8 @@
 <title>Transcriby</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" href="reo-logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* Transcriby: tudo acontece num chat com o Reo (estilo chat de IA).
@@ -70,8 +72,6 @@ body.think .b1, body.think .b2 { opacity:.26; }
 .model:hover { background:var(--s2); }
 .model .chev { color:var(--dim); }
 .ver { font:600 10px var(--mono); letter-spacing:.04em; padding:2px 7px; border-radius:6px; color:#fff; background:var(--spectrum); background-size:200% 100%; animation:flow 6s linear infinite; }
-.orb-s { width:20px; height:20px; border-radius:50%; flex:none; background:var(--conic); animation:turn 4s linear infinite; position:relative; box-shadow:0 2px 10px rgba(240,67,140,.35); }
-.orb-s::after { content:""; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.8),transparent 40%); }
 @keyframes turn { to { --ang:360deg; } }
 
 /* ---------- conversa ---------- */
@@ -80,12 +80,49 @@ main { position:relative; z-index:1; max-width:var(--w); margin:0 auto; padding-
 
 /* tela inicial */
 .hello { min-height:calc(100svh - 290px); display:flex; flex-direction:column; justify-content:flex-end; gap:22px; padding-bottom:8px; }
-.orbbox { position:relative; width:64px; height:64px; }
-.orb { position:absolute; inset:0; border-radius:50%; background:var(--conic); animation:turn 7s linear infinite, breathe 3.4s ease-in-out infinite; box-shadow:inset 0 0 22px rgba(255,255,255,.45), 0 10px 30px -8px rgba(123,77,255,.45); }
-.orb::after { content:""; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.85),transparent 36%); }
-.halo { position:absolute; inset:-40%; border-radius:50%; background:var(--conic); filter:blur(26px); opacity:.35; animation:turn 5s linear infinite, breathe 3.4s ease-in-out infinite; transition:opacity .6s, inset .6s; }
-body.typing .hello .halo { opacity:.6; inset:-60%; }
 @keyframes breathe { 50% { transform:scale(1.06); } }
+
+/* ---------- logo do Reo: esfera viva com ondas de som ----------
+   Tudo em "em": o tamanho vem do font-size do elemento .reo. Camadas: brilho, anel que gira, esfera (aurora girando),
+   barras de som no centro e reflexo de luz que segue o dedo/mouse. Fica mais viva quando o Reo está trabalhando. */
+.reo { position:relative; display:inline-block; flex:none; width:1em; height:1em; font-size:24px; line-height:0; border-radius:50%; isolation:isolate; vertical-align:middle; }
+.reo i { position:absolute; }
+.r-glow { inset:-.4em; border-radius:50%; background:var(--conic); filter:blur(.3em); opacity:0; z-index:-1; animation:turn 6s linear infinite; transition:opacity .6s; }
+.r-ring { inset:-.2em; border-radius:50%; padding:.05em; opacity:0; transition:opacity .5s; animation:turn 3.2s linear infinite;
+  background:conic-gradient(from var(--ang), transparent 0 52%, var(--violet) 76%, var(--pink) 92%, #fff 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; }
+.r-ball { position:absolute; inset:0; border-radius:50%; overflow:hidden; transform:translateZ(0); -webkit-mask-image:-webkit-radial-gradient(white,black);
+  background:radial-gradient(circle at 50% 38%,#9272FF,#4660FF 72%); box-shadow:0 .1em .34em -.06em rgba(123,77,255,.6);
+  animation:rbreathe 3.6s ease-in-out infinite; }
+.r-b { inset:0; }
+.r-b::before { content:""; position:absolute; left:50%; top:50%; width:.72em; height:.72em; margin:-.36em 0 0 -.36em; border-radius:50%; background:var(--c); filter:blur(.15em); transform:translate(var(--ox),var(--oy)); }
+.r-b1 { --c:#FF4F9A; --ox:.24em; --oy:-.12em; animation:rspin 6s linear infinite; }
+.r-b2 { --c:#FFB347; --ox:-.26em; --oy:.14em; animation:rspin 9s linear infinite reverse; }
+.r-b3 { --c:#35E0C0; --ox:.04em; --oy:.3em; animation:rspin 12s linear infinite; }
+.r-b3::before { width:.5em; height:.5em; margin:-.25em 0 0 -.25em; }
+.r-b4 { --c:#6F8BFF; --ox:-.16em; --oy:-.28em; animation:rspin 8s linear infinite reverse; }
+.r-bars { left:50%; top:50%; width:.5em; height:.4em; margin:-.2em 0 0 -.25em; display:flex; gap:.045em; align-items:center; justify-content:center; transform:translate(calc(var(--tx,0)*.035em),calc(var(--ty,0)*.035em)); }
+.r-bars b { display:block; position:relative; width:.058em; height:100%; border-radius:.06em; background:#fff; box-shadow:0 0 .07em rgba(255,255,255,.9); transform:scaleY(.3); animation:rbar 1.15s ease-in-out infinite; }
+.r-bars b:nth-child(1) { height:46%; animation-delay:-.2s; } .r-bars b:nth-child(2) { height:80%; animation-delay:-.7s; } .r-bars b:nth-child(3) { height:100%; animation-delay:-.45s; }
+.r-bars b:nth-child(4) { height:74%; animation-delay:-.95s; } .r-bars b:nth-child(5) { height:50%; animation-delay:-.1s; }
+.r-shine { inset:0; border-radius:50%; background:
+  radial-gradient(circle at calc(31% + var(--tx,0)*7%) calc(24% + var(--ty,0)*7%), rgba(255,255,255,.88), rgba(255,255,255,0) 34%),
+  radial-gradient(circle at calc(72% - var(--tx,0)*5%) calc(86% - var(--ty,0)*5%), rgba(30,10,90,.4), rgba(30,10,90,0) 56%);
+  box-shadow:inset -.07em -.09em .2em rgba(25,10,90,.38), inset .05em .06em .14em rgba(255,255,255,.5); }
+.r-rip { inset:0; border-radius:50%; border:.035em solid rgba(123,77,255,.55); pointer-events:none; animation:rrip 1.4s ease-out forwards; }
+.reo.big { animation:rform 1.2s var(--spring) both; cursor:pointer; }
+.reo.big .r-glow { opacity:.5; } .reo.big .r-ring { opacity:.95; animation-duration:5s; }
+body.typing .reo.big .r-glow { opacity:.8; }
+body.think .model .r-glow, body.think #thread > .ai:last-child .r-glow { opacity:.55; }
+body.think .model .r-ring, body.think #thread > .ai:last-child .r-ring { opacity:1; }
+body.think .r-bars b { animation-duration:.55s; }
+#thread > .ai:not(:last-child) .reo * { animation-play-state:paused; }
+.reo.sm .r-b4 { display:none; }
+@keyframes rspin { to { transform:rotate(360deg); } }
+@keyframes rbreathe { 50% { transform:translateZ(0) scale(1.05); } }
+@keyframes rbar { 50% { transform:scaleY(1); } }
+@keyframes rrip { from { transform:scale(1); opacity:.9; } to { transform:scale(2.9); opacity:0; } }
+@keyframes rform { from { transform:scale(.15) rotate(-120deg); opacity:0; filter:blur(10px); } 60% { filter:blur(0); } }
 .hello h1 { margin:0; font-weight:600; font-size:clamp(30px,8.6vw,42px); line-height:1.08; letter-spacing:-.04em; text-wrap:balance; }
 .w { display:inline-block; animation:wIn .7s var(--ease) both; }
 @keyframes wIn { from { opacity:0; transform:translateY(10px); filter:blur(8px); } }
@@ -112,7 +149,7 @@ body.typing .hello .halo { opacity:.6; inset:-60%; }
 .att b { display:block; font-size:14px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .att small { font:400 11.5px var(--mono); color:var(--mut); }
 .ai { display:flex; gap:12px; align-items:flex-start; }
-.ai > .orb-s { width:24px; height:24px; margin-top:2px; }
+.ai > .reo { font-size:26px; margin-top:1px; }
 .ai > .body { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
 .txt { color:var(--ink2); line-height:1.7; overflow-wrap:anywhere; }
 .txt p { margin:0 0 12px; } .txt > :last-child { margin-bottom:0; }
@@ -278,7 +315,6 @@ body.think { --spd:2.6; }
 .opt[aria-checked=true] .radio { box-shadow:inset 0 0 0 1.5px var(--violet); }
 .opt[aria-checked=true] .radio::after { transform:scale(1); }
 .reo-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; padding:8px 0 14px; }
-.reo-card .orbbox { width:72px; height:72px; }
 .reo-card h3 { display:flex; align-items:center; gap:8px; }
 .reo-card p { margin:0; color:var(--mut); max-width:40ch; }
 .reo-card .by { display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; background:var(--s2); color:var(--ink2); font-size:14px; }
@@ -427,7 +463,7 @@ body.think { --spd:2.6; }
 
 <header class="top"><div class="top-in">
   <button class="ibtn press" id="openDrawer" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></button>
-  <button class="model press" id="openModel" aria-label="Sobre o Reo 1.0"><span class="orb-s"></span>Reo <span class="ver">1.0</span><svg class="i sm chev"><use href="#down"/></svg></button>
+  <button class="model press" id="openModel" aria-label="Sobre o Reo 1.0"><span class="reo sm" style="font-size:22px" aria-hidden="true"><i class="r-glow"></i><i class="r-ring"></i><span class="r-ball"><i class="r-b r-b1"></i><i class="r-b r-b2"></i><i class="r-b r-b3"></i><i class="r-bars"><b></b><b></b><b></b><b></b><b></b></i><i class="r-shine"></i></span></span>Reo <span class="ver">1.0</span><svg class="i sm chev"><use href="#down"/></svg></button>
   <button class="ibtn press" id="newChat" aria-label="Nova conversa"><svg class="i"><use href="#edit"/></svg></button>
 </div></header>
 
@@ -493,6 +529,8 @@ const T = $('thread');
 const I = (n, c = '') => `<svg class="i ${c}"><use href="#${n}"/></svg>`;
 const EQ = (c = '') => `<span class="eqi ${c}" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Logo do Reo (esfera viva). size em px; 'big' liga o brilho, o anel e a animação de entrada.
+const REO = (size = 24, cls = '') => `<span class="reo ${size <= 30 ? 'sm ' : ''}${cls}" style="font-size:${size}px" aria-hidden="true"><i class="r-glow"></i><i class="r-ring"></i><span class="r-ball"><i class="r-b r-b1"></i><i class="r-b r-b2"></i><i class="r-b r-b3"></i>${size <= 30 ? '' : '<i class="r-b r-b4"></i>'}<i class="r-bars"><b></b><b></b><b></b><b></b><b></b></i><i class="r-shine"></i></span></span>`;
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
 const fmtSize = b => b >= 1073741824 ? (b / 1073741824).toFixed(1).replace('.', ',') + ' GB' : b >= 1048576 ? Math.round(b / 1048576) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -672,7 +710,7 @@ function openSheet(html, cls = '') {
 function closeSheet(instant) { if (sheetOpen) sheetOpen.close(instant); }
 
 function modelSheet() {
-  openSheet(`<div class="reo-card"><div class="orbbox"><div class="halo"></div><div class="orb"></div></div>
+  openSheet(`<div class="reo-card">${REO(92, 'big')}
     <h3>Reo <span class="ver">1.0</span></h3>
     <p>O Reo é a IA do Transcriby. Foi treinado para entender melhor os áudios, captar as nuances da fala e conseguir explicar o que ouviu. Roda em conjunto com o modelo Argon.</p>
     <p class="by">${I('user', 'sm')}<span>Criado por <b>Glaydson Andrade</b></span></p></div>
@@ -681,7 +719,7 @@ function modelSheet() {
       <div class="feat"><span class="tile c-mint">${I('chat')}</span><span>Organiza conversas do WhatsApp por data e pessoa</span></div>
       <div class="feat"><span class="tile c-pink">${I('spark')}</span><span>Resume e responde perguntas sobre o texto</span></div>
     </div>
-    <button class="opt" role="radio" aria-checked="true"><span class="tile c-blue"><span class="orb-s"></span></span><span class="tx"><b>Reo 1.0</b><small>Versão atual</small></span><span class="radio"></span></button>`);
+    <button class="opt" role="radio" aria-checked="true"><span class="tile c-blue">${REO(22)}</span><span class="tx"><b>Reo 1.0</b><small>Versão atual</small></span><span class="radio"></span></button>`);
 }
 $('openModel').onclick = modelSheet;
 
@@ -706,7 +744,7 @@ function hello() {
   const h1 = words.map((w, i) => `<span class="w" style="animation-delay:${i * .07}s">${w}</span>`).join(' ') +
     ` <span class="w grad" style="animation-delay:${words.length * .07}s">transcrever</span><span class="w" style="animation-delay:${words.length * .07 + .07}s">?</span>`;
   const card = (ic, c, t, s, act, i) => `<button class="cardq press" data-act="${act}" style="animation-delay:${.45 + i * .07}s"><span class="tile ${c}">${ic === 'wave' ? EQ() : I(ic)}</span><span><b>${t}</b><small>${s}</small></span></button>`;
-  T.innerHTML = `<section class="hello" id="hello"><div class="orbbox"><div class="halo"></div><div class="orb"></div></div><h1>${h1}</h1>
+  T.innerHTML = `<section class="hello" id="hello">${REO(76, 'big')}<h1>${h1}</h1>
     <p>Mande um áudio, um vídeo ou a conversa do WhatsApp. Eu devolvo o texto completo e respondo o que você quiser sobre ele.</p>
     ${crashNote ? `<div class="warnbox">${esc(crashNote)}</div>` : ''}
     <div class="cards">${
@@ -799,7 +837,7 @@ function userMsg(text, p) {
   if (text) d.querySelector('.bub').textContent = text;
   T.append(d); follow = true; toEnd(true); return d;
 }
-function aiMsg() { clearHello(); const d = el('div', 'ai msg', '<span class="orb-s"></span><div class="body"></div>'); T.append(d); toEnd(); return d.querySelector('.body'); }
+function aiMsg() { clearHello(); const d = el('div', 'ai msg', REO(26) + '<div class="body"></div>'); T.append(d); toEnd(); return d.querySelector('.body'); }
 function thinkBlock(body, label) {
   const t = el('div', 'tblock open', `<button class="think-h" aria-expanded="true"><span class="spin"></span><span class="lbl shim"></span><span class="tm">0s</span>${I('down', 'sm chev')}</button><div class="think-b"><div><div class="think-in"></div></div></div>`);
   body.append(t);
@@ -1351,6 +1389,23 @@ function openConv(my) {
   q('cvCopy').onclick = async () => { const ok = await copyText(toTranscript(waShown)); toast(ok ? 'Texto copiado' : 'Não consegui copiar'); };
   render();
 }
+
+/* ---- a logo reage: toque faz ondas, reflexo segue o dedo/mouse ---- */
+function ripple(o) {
+  if (!o || reduce) return;
+  for (let k = 0; k < 2; k++) { const r = document.createElement('i'); r.className = 'r-rip'; r.style.animationDelay = (k * .22) + 's'; o.append(r); setTimeout(() => r.remove(), 1800); }
+  o.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.16)' }, { transform: 'scale(1)' }], { duration: 520, easing: 'cubic-bezier(.3,1.35,.5,1)' });
+}
+document.addEventListener('click', e => { const o = e.target.closest('.reo.big'); if (o) ripple(o); });
+setInterval(() => { if (!document.hidden) ripple(document.querySelector('.reo.big')); }, 6500);
+let gx = 0, gy = 0, cx = 0, cy = 0, moving = false;
+const R0 = document.documentElement;
+function glide() {
+  cx += (gx - cx) * .1; cy += (gy - cy) * .1;
+  R0.style.setProperty('--tx', cx.toFixed(3)); R0.style.setProperty('--ty', cy.toFixed(3));
+  if (Math.abs(gx - cx) + Math.abs(gy - cy) > .002) requestAnimationFrame(glide); else moving = false;
+}
+if (!reduce) addEventListener('pointermove', e => { gx = e.clientX / innerWidth * 2 - 1; gy = e.clientY / innerHeight * 2 - 1; if (!moving) { moving = true; requestAnimationFrame(glide); } }, { passive: true });
 
 hello();
 grow();

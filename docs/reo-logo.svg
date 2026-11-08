@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Reo">
+<defs>
+<radialGradient id="b" cx="50%" cy="38%" r="72%"><stop offset="0" stop-color="#9272FF"/><stop offset="1" stop-color="#4660FF"/></radialGradient>
+<clipPath id="c"><circle cx="256" cy="256" r="232"/></clipPath>
+<filter id="f" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="44"/></filter>
+<radialGradient id="h" cx="31%" cy="24%" r="38%"><stop offset="0" stop-color="#fff" stop-opacity=".88"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<radialGradient id="s" cx="72%" cy="86%" r="56%"><stop offset="0" stop-color="#1E0A5A" stop-opacity=".42"/><stop offset="1" stop-color="#1E0A5A" stop-opacity="0"/></radialGradient>
+</defs>
+<circle cx="256" cy="256" r="232" fill="url(#b)"/>
+<g clip-path="url(#c)">
+<g filter="url(#f)"><circle cx="372" cy="184" r="132" fill="#FF4F9A"/><circle cx="132" cy="336" r="128" fill="#FFB347"/><circle cx="284" cy="456" r="88" fill="#35E0C0"/><circle cx="170" cy="120" r="84" fill="#6F8BFF"/></g>
+<circle cx="256" cy="256" r="232" fill="url(#h)"/><circle cx="256" cy="256" r="232" fill="url(#s)"/>
+</g>
+<g fill="#fff"><rect x="170" y="216" width="22" height="80" rx="11"/><rect x="206" y="180" width="22" height="152" rx="11"/><rect x="245" y="150" width="22" height="212" rx="11"/><rect x="284" y="184" width="22" height="144" rx="11"/><rect x="320" y="212" width="22" height="88" rx="11"/></g>
+</svg>
