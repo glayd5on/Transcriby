@@ -1,6 +1,6 @@
 # Transcriby
 
-> **Site grátis (pasta `web/` e `docs/`):** envia o áudio ou vídeo e devolve o texto completo, organizado em parágrafos, para copiar e usar numa IA. Também baixa o SRT com tempo e gera resumo. A transcrição é feita pelo modelo Reo (Beta), via um Cloudflare Worker (`cloudflare/LEIA-ME.md`).
+> **Site grátis (pasta `web/` e `docs/`):** envia o áudio ou vídeo e devolve o texto completo, organizado em parágrafos, para copiar e usar numa IA. Também baixa o SRT com tempo e gera resumo. A transcrição é feita pelo modelo Reo 1.0, via um Cloudflare Worker (`cloudflare/LEIA-ME.md`).
 > Também importa o `.zip` de uma conversa do WhatsApp (iPhone ou Android): transcreve áudios e a fala dos vídeos, descreve fotos, organiza tudo por data e pessoa, filtra, busca, exporta em `.md` e tem um chat com o Reo sobre a conversa (limite de 10 h de áudio por envio).
 
 > **Quer 100% grátis na web?** Use a pasta `web/` (roda no navegador, sem servidor e sem API). Veja `web/LEIA-ME.md`.

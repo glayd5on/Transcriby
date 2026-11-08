@@ -1,7 +1,7 @@
 # Transcriby (site estático)
 
 Página estática (`index.html` + módulos JS). O áudio é lido no navegador, cortado em partes de ~5 minutos e enviado a um
-Cloudflare Worker (ver `../cloudflare/LEIA-ME.md`), que transcreve com o modelo Reo (Beta) e também gera resumos.
+Cloudflare Worker (ver `../cloudflare/LEIA-ME.md`), que transcreve com o modelo Reo 1.0 e também gera resumos.
 O vídeo nunca sai do aparelho: só o áudio é enviado.
 
 ## Publicar
@@ -14,7 +14,7 @@ Para testar no computador: `cd web && python3 -m http.server 8000` e abra http:/
 
 ## Arquivos
 
-- `index.html`: tela (idioma, modelo Reo, resultado, downloads e resumo; tela da conversa do WhatsApp com filtros, busca, exportar .md e chat com o Reo)
+- `index.html`: o site inteiro como um chat com o Reo 1.0 (só modo claro): enviar áudio, vídeo ou a conversa do WhatsApp pelo +, ver o Reo trabalhando, texto pronto com Copiar/TXT/SRT, resumo, perguntas ao Reo, conversa organizada com filtros e .md, menu com uso do dia e código de liberação
 - `gemini.js`: corta o áudio em partes, envia ao Worker, ajusta o tempo dos trechos e pede o resumo
 - `srt.js`: monta o texto em parágrafos e o SRT com tempo
 - `audio.js`: lê o áudio do arquivo (aos poucos, sem carregar o vídeo inteiro) e converte para mono 16 kHz

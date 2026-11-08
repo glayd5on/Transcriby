@@ -37,7 +37,7 @@ export function kindFromName(name) {
   return ext ? "documento" : "outro";
 }
 
-const ATTACH_IOS = /^<\s*(?:anexo|attached|adjunto|allegato|anhang|pi[eè]ce jointe)\s*:\s*(.+?)\s*>$/i;
+const ATTACH_IOS = /^<\s*(?:anexad[oa]|anexo|attached|adjunto|allegato|anhang|pi[eè]ce jointe)\s*:\s*(.+?)\s*>$/i;
 const ATTACH_ANDROID = /^(.+?)\s+\((?:arquivo anexado|file attached|archivo adjunto|fichier joint|datei angeh[äa]ngt|file allegato)\)\s*$/i;
 const OMITTED = /^<?\s*(?:m[ií]dia oculta|m[ií]dia omitida|media omitted|multimedia omitido|(?:imagem|image|imagen|v[ií]deo|video|[aá]udio|audio|figurinha|sticker|documento|document|gif|contato|contact card)\s+(?:omitid[oa]|omitted))\s*>?\.?$/i;
 

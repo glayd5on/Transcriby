@@ -2,499 +2,576 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F5F3FC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#131129" media="(prefers-color-scheme: dark)">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light only">
+<meta name="theme-color" content="#F6F6FA">
 <title>Transcriby</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    color-scheme: light dark;
-    --bg:#F5F3FC; --surface:#FFFFFF; --sunken:#EEEAFB; --line:#DDD7F2; --line-strong:#857ACE;
-    --text:#1B1736; --muted:#5E5984;
-    --accent:#5B4BFF; --accent-press:#4A3BE6; --on-accent:#FFFFFF; --accent-text:#4B3DD6;
-    --cue:#F2B705; --focus:#5B4BFF; --err:#B3261E; --err-bg:#FBEAE9;
-    --font-display:"Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
-    --font-ui:"DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg:#131129; --surface:#1D1A3A; --sunken:#161430; --line:#332F5E; --line-strong:#7A72C4;
-      --text:#F2F0FF; --muted:#A7A3CC;
-      --accent:#6B5BFF; --accent-press:#5B4BFF; --on-accent:#FFFFFF; --accent-text:#BDB4FF;
-      --cue:#FFD84D; --focus:#FFD84D; --err:#FF9A92; --err-bg:#3A1F2E;
-    }
-  }
-  * { box-sizing:border-box; }
-  [hidden] { display:none !important; }
-  html { -webkit-text-size-adjust:100%; }
-  body {
-    margin:0; background:var(--bg); color:var(--text);
-    font-family:var(--font-ui); font-size:16px; line-height:1.5;
-    -webkit-tap-highlight-color:transparent;
-  }
-  main {
-    max-width:560px; margin:0 auto;
-    padding:max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  }
-  :focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+/* Transcriby: tudo acontece num chat com o Reo (estilo chat de IA).
+   Topo fixo (menu · modelo · nova conversa), conversa no meio (até 720px), caixa de mensagem fixa embaixo.
+   Só modo claro. Padrão: espaços 4/8/12/16/24 · cantos 10/14/18/26 · ícones de traço 1,75. */
+@property --ang { syntax:"<angle>"; inherits:false; initial-value:0deg; }
+:root {
+  color-scheme: light only;
+  --bg:#F6F6FA; --paper:#FFFFFF; --ink:#14151F; --ink2:#2B2D3C; --mut:#5D6075; --dim:#8E91A3;
+  --s1:rgba(255,255,255,.78); --s2:rgba(20,22,48,.045); --s3:rgba(20,22,48,.08);
+  --line:rgba(20,22,48,.09); --sh:0 1px 2px rgba(20,22,48,.05), 0 8px 24px -12px rgba(20,22,48,.12);
+  --blue:#3D63FF; --violet:#7B4DFF; --pink:#F0438C; --amber:#F2962F; --mint:#10A98F;
+  --err:#C2273A; --errbg:#FDECEF;
+  --spectrum:linear-gradient(100deg,var(--blue),var(--violet) 35%,var(--pink) 68%,var(--amber));
+  --conic:conic-gradient(from var(--ang),var(--blue),var(--violet),var(--pink),var(--amber),var(--blue));
+  --ui:"Geist",-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.3,1.35,.5,1);
+  --spd:1; --w:720px;
+}
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html { -webkit-text-size-adjust:100%; }
+html, body { min-height:100%; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--ui); font-size:15.5px; line-height:1.55; letter-spacing:-.006em; -webkit-tap-highlight-color:transparent; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+button { font:inherit; color:inherit; cursor:pointer; background:none; border:0; padding:0; }
+button:disabled { cursor:not-allowed; }
+:focus-visible { outline:2px solid var(--violet); outline-offset:3px; border-radius:8px; }
+.i { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.i.sm { width:16px; height:16px; }
+.tile { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; flex:none; background:var(--s2); }
+.c-mint { color:var(--mint); } .tile.c-mint { background:rgba(16,169,143,.1); }
+.c-pink { color:var(--pink); } .tile.c-pink { background:rgba(240,67,140,.1); }
+.c-violet { color:var(--violet); } .tile.c-violet { background:rgba(123,77,255,.1); }
+.c-amber { color:#D97A12; } .tile.c-amber { background:rgba(242,150,47,.13); }
+.c-blue { color:var(--blue); } .tile.c-blue { background:rgba(61,99,255,.1); }
+.press { transition:transform .18s var(--ease), background .2s, color .2s, opacity .2s, box-shadow .2s; }
+.press:active { transform:scale(.95); }
 
-  /* Cabeçalho */
-  .top { display:flex; align-items:center; gap:10px; margin:8px 0 28px; }
-  .mark { width:32px; height:32px; flex:none; }
-  .word { font-family:var(--font-display); font-weight:800; font-size:20px; letter-spacing:-0.01em; }
-  h1 { font-family:var(--font-display); font-weight:800; font-size:clamp(34px, 10vw, 46px); line-height:1.02; letter-spacing:-0.03em; margin:0 0 12px; text-wrap:balance; }
-  .sub { margin:0 0 28px; color:var(--muted); max-width:46ch; text-wrap:pretty; }
+/* ---------- fundo vivo: manchas suaves + ondas de som coloridas ---------- */
+.sky { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.blob { position:absolute; border-radius:50%; filter:blur(80px); opacity:.16; will-change:transform; transition:opacity 1.2s; }
+.b1 { width:80vmax; height:80vmax; left:-38vmax; top:-50vmax; background:radial-gradient(circle,var(--blue),transparent 60%); animation:d1 calc(24s / var(--spd)) ease-in-out infinite alternate; }
+.b2 { width:70vmax; height:70vmax; right:-36vmax; top:-28vmax; background:radial-gradient(circle,var(--violet),transparent 60%); animation:d2 calc(28s / var(--spd)) ease-in-out infinite alternate; }
+.b3 { width:60vmax; height:60vmax; left:-24vmax; bottom:-46vmax; background:radial-gradient(circle,var(--pink),transparent 60%); animation:d3 calc(32s / var(--spd)) ease-in-out infinite alternate; }
+.b4 { width:44vmax; height:44vmax; right:-18vmax; bottom:-22vmax; background:radial-gradient(circle,var(--amber),transparent 60%); animation:d4 calc(26s / var(--spd)) ease-in-out infinite alternate; }
+@keyframes d1 { to { transform:translate(20vmax,16vmax) scale(1.15); } }
+@keyframes d2 { to { transform:translate(-22vmax,24vmax) scale(.9); } }
+@keyframes d3 { to { transform:translate(24vmax,-20vmax) scale(1.2); } }
+@keyframes d4 { to { transform:translate(-28vmax,-30vmax) scale(1.3); } }
+body.think .b1, body.think .b2 { opacity:.26; }
+#waves { position:absolute; inset:0; width:100%; height:100%; }
 
-  /* Painel principal */
-  .panel { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:12px; }
+/* ---------- topo ---------- */
+.top { position:fixed; z-index:20; top:0; left:0; right:0; padding-top:env(safe-area-inset-top,0px); background:rgba(246,246,250,.78); backdrop-filter:blur(18px) saturate(1.4); -webkit-backdrop-filter:blur(18px) saturate(1.4); box-shadow:0 1px 0 var(--line); }
+.top-in { max-width:var(--w); margin:0 auto; height:56px; display:flex; align-items:center; justify-content:space-between; padding-left:max(12px,env(safe-area-inset-left,0px)); padding-right:max(12px,env(safe-area-inset-right,0px)); }
+.ibtn { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:var(--mut); }
+.ibtn:hover { background:var(--s2); color:var(--ink); }
+.model { display:flex; align-items:center; gap:8px; height:36px; padding:0 10px 0 8px; border-radius:999px; font-weight:600; font-size:15px; }
+.model:hover { background:var(--s2); }
+.model .chev { color:var(--dim); }
+.ver { font:600 10px var(--mono); letter-spacing:.04em; padding:2px 7px; border-radius:6px; color:#fff; background:var(--spectrum); background-size:200% 100%; animation:flow 6s linear infinite; }
+.orb-s { width:20px; height:20px; border-radius:50%; flex:none; background:var(--conic); animation:turn 4s linear infinite; position:relative; box-shadow:0 2px 10px rgba(240,67,140,.35); }
+.orb-s::after { content:""; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.8),transparent 40%); }
+@keyframes turn { to { --ang:360deg; } }
 
-  /* Escolha do arquivo */
-  #drop {
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center;
-    min-height:176px; padding:24px 16px; border:2px dashed var(--line-strong); border-radius:16px;
-    background:var(--sunken); cursor:pointer; transition:border-color .15s, background-color .15s;
-  }
-  #drop:hover, #drop.over { border-color:var(--accent); }
-  #drop .plus { width:48px; height:48px; border-radius:50%; background:var(--accent); color:var(--on-accent); display:grid; place-items:center; margin-bottom:8px; }
-  #drop .title { font-weight:600; font-size:18px; }
-  #drop .how, #drop .fmt { color:var(--muted); font-size:14px; }
-  #drop .mouse { display:none; }
-  @media (hover:hover) and (pointer:fine) { #drop .touch { display:none; } #drop .mouse { display:inline; } }
-  #drop .empty { display:contents; }
-  #drop .chosen { display:none; }
-  #drop.has-file { flex-direction:row; align-items:center; justify-content:flex-start; gap:12px; text-align:left; min-height:0; padding:14px; border-style:solid; border-color:var(--line); background:var(--sunken); }
-  #drop.has-file .empty { display:none; }
-  #drop.has-file .chosen { display:contents; }
-  .ficon { width:44px; height:44px; border-radius:12px; background:var(--surface); border:1px solid var(--line); display:grid; place-items:center; flex:none; color:var(--accent-text); }
-  .fbody { min-width:0; flex:1; }
-  #fname { display:block; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #fmeta { display:block; font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums; }
-  .swap { flex:none; font-weight:600; font-size:15px; color:var(--accent-text); padding:8px 4px; }
+/* ---------- conversa ---------- */
+main { position:relative; z-index:1; max-width:var(--w); margin:0 auto; padding-left:max(18px,env(safe-area-inset-left,0px)); padding-right:max(18px,env(safe-area-inset-right,0px)); padding-top:calc(68px + env(safe-area-inset-top,0px)); padding-bottom:calc(var(--compH,150px) + 28px); }
+#thread { display:flex; flex-direction:column; gap:22px; }
 
-  /* Opções (lista com linhas) */
-  .opts { margin-top:12px; border:1px solid var(--line); border-radius:16px; overflow:hidden; }
-  .opt { position:relative; display:block; height:64px; }
-  .opt + .opt { border-top:1px solid var(--line); }
-  .opt .k { position:absolute; left:16px; top:10px; font-size:13px; color:var(--muted); pointer-events:none; }
-  .opt select {
-    position:absolute; inset:0; width:100%; height:100%; margin:0;
-    padding:24px 44px 0 16px; border:0; border-radius:0; background:transparent; color:var(--text);
-    font:inherit; font-size:17px; -webkit-appearance:none; appearance:none; cursor:pointer;
-  }
-  .opt::after { content:""; position:absolute; right:20px; top:50%; width:8px; height:8px; margin-top:-6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); pointer-events:none; }
-  .opt select:focus-visible { outline-offset:-3px; }
+/* tela inicial */
+.hello { min-height:calc(100svh - 290px); display:flex; flex-direction:column; justify-content:flex-end; gap:22px; padding-bottom:8px; }
+.orbbox { position:relative; width:64px; height:64px; }
+.orb { position:absolute; inset:0; border-radius:50%; background:var(--conic); animation:turn 7s linear infinite, breathe 3.4s ease-in-out infinite; box-shadow:inset 0 0 22px rgba(255,255,255,.45), 0 10px 30px -8px rgba(123,77,255,.45); }
+.orb::after { content:""; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.85),transparent 36%); }
+.halo { position:absolute; inset:-40%; border-radius:50%; background:var(--conic); filter:blur(26px); opacity:.35; animation:turn 5s linear infinite, breathe 3.4s ease-in-out infinite; transition:opacity .6s, inset .6s; }
+body.typing .hello .halo { opacity:.6; inset:-60%; }
+@keyframes breathe { 50% { transform:scale(1.06); } }
+.hello h1 { margin:0; font-weight:600; font-size:clamp(30px,8.6vw,42px); line-height:1.08; letter-spacing:-.04em; text-wrap:balance; }
+.w { display:inline-block; animation:wIn .7s var(--ease) both; }
+@keyframes wIn { from { opacity:0; transform:translateY(10px); filter:blur(8px); } }
+.grad { background:linear-gradient(100deg,var(--blue),var(--violet) 30%,var(--pink) 60%,var(--amber) 80%,var(--blue)); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:flow 8s linear infinite; }
+.w.grad { animation:wIn .7s var(--ease) both, flow 8s linear infinite; }
+@keyframes flow { to { background-position:-200% 0; } }
+.hello p { margin:-10px 0 0; color:var(--mut); max-width:42ch; animation:wIn .7s .45s var(--ease) both; }
+.hello .warnbox { animation:wIn .7s .6s var(--ease) both; }
+.cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cardq { position:relative; display:flex; flex-direction:column; gap:12px; padding:14px; border-radius:18px; text-align:left; background:var(--s1); box-shadow:var(--sh), inset 0 0 0 1px var(--line); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); animation:wIn .6s var(--ease) both; overflow:hidden; }
+.cardq::before { content:""; position:absolute; inset:0; border-radius:inherit; background:radial-gradient(140px circle at var(--mx,50%) var(--my,0%),rgba(123,77,255,.12),transparent 70%); opacity:0; transition:opacity .3s; }
+.cardq:hover::before { opacity:1; }
+.cardq b { font-weight:500; font-size:14px; line-height:1.3; }
+.cardq small { display:block; color:var(--dim); font-size:12.5px; margin-top:2px; }
 
-  /* Modelo: uma linha que abre para baixo com a explicação */
-  .model { border-top:1px solid var(--line); }
-  .model summary { position:relative; display:flex; align-items:flex-end; gap:8px; height:64px; padding:0 44px 10px 16px; list-style:none; cursor:pointer; font-size:17px; }
-  .model summary::-webkit-details-marker { display:none; }
-  .model summary::after { content:""; position:absolute; right:20px; top:50%; width:8px; height:8px; margin-top:-6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform .2s; }
-  .model[open] summary::after { transform:rotate(225deg); margin-top:-2px; }
-  .model summary:focus-visible { outline-offset:-3px; }
-  .model .k { position:absolute; left:16px; top:10px; font-size:13px; color:var(--muted); pointer-events:none; }
-  .model .mname { font-weight:600; }
-  .model .mdesc { padding:0 16px 16px; color:var(--muted); font-size:15px; }
-  .model .mdesc p { margin:0; max-width:52ch; text-wrap:pretty; }
-  .badge { display:inline-block; vertical-align:middle; margin-left:6px; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:1.6; letter-spacing:.02em; background:var(--sunken); color:var(--accent-text); border:1px solid var(--line-strong); }
+/* mensagens */
+.msg { animation:msgIn .55s var(--ease) both; }
+@keyframes msgIn { from { opacity:0; transform:translateY(14px); } }
+.me { align-self:flex-end; max-width:86%; display:flex; flex-direction:column; align-items:flex-end; gap:6px; animation:meIn .5s var(--spring) both; transform-origin:bottom right; }
+@keyframes meIn { from { opacity:0; transform:translateY(40px) scale(.94); } }
+.bub { padding:10px 15px; border-radius:20px 20px 6px 20px; background:var(--ink); color:#fff; white-space:pre-wrap; overflow-wrap:anywhere; }
+.att { display:flex; align-items:center; gap:10px; padding:8px 12px 8px 8px; border-radius:16px; background:var(--paper); box-shadow:var(--sh), inset 0 0 0 1px var(--line); max-width:100%; min-width:0; }
+.att .fb { min-width:0; }
+.att b { display:block; font-size:14px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.att small { font:400 11.5px var(--mono); color:var(--mut); }
+.ai { display:flex; gap:12px; align-items:flex-start; }
+.ai > .orb-s { width:24px; height:24px; margin-top:2px; }
+.ai > .body { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
+.txt { color:var(--ink2); line-height:1.7; overflow-wrap:anywhere; }
+.txt p { margin:0 0 12px; } .txt > :last-child { margin-bottom:0; }
+.txt h4 { margin:6px 0 4px; font-size:15.5px; font-weight:600; color:var(--ink); }
+.txt ul, .txt ol { margin:0 0 10px; padding-left:22px; } .txt li { margin:3px 0; }
+.txt strong { color:var(--ink); font-weight:600; }
+.blk { animation:blk .5s var(--ease) both; }
+@keyframes blk { from { opacity:0; transform:translateY(6px); filter:blur(4px); } }
+.wd { animation:wd .5s ease both; }
+@keyframes wd { from { opacity:0; filter:blur(5px); } }
+.caret { display:inline-block; width:8px; height:8px; margin-left:4px; border-radius:50%; background:var(--pink); box-shadow:0 0 10px var(--pink); vertical-align:1px; animation:cp .9s ease-in-out infinite; }
+@keyframes cp { 50% { transform:scale(.5); opacity:.5; } }
+.doc { max-height:min(56vh,520px); overflow:auto; padding:16px 18px; border-radius:18px; background:var(--paper); box-shadow:var(--sh), inset 0 0 0 1px var(--line); -webkit-overflow-scrolling:touch; }
+.doc-h { display:flex; align-items:center; gap:10px; }
+.doc-h b { font-weight:600; font-size:16px; letter-spacing:-.01em; }
+.doc-h .meta { margin-left:auto; }
+.errbox { padding:12px 14px; border-radius:14px; background:var(--errbg); color:var(--err); font-size:14.5px; }
+.warnbox { padding:12px 14px; border-radius:14px; background:#FFF6E8; color:#8A4B00; font-size:14.5px; box-shadow:inset 0 0 0 1px rgba(242,150,47,.25); }
+.infobox { padding:12px 14px; border-radius:14px; background:var(--s2); color:var(--mut); font-size:13.5px; }
 
-  /* Botões */
-  .btn, button.primary {
-    display:flex; align-items:center; justify-content:center; width:100%; min-height:56px; padding:0 20px;
-    border:0; border-radius:16px; font:inherit; font-size:17px; font-weight:600; text-decoration:none; cursor:pointer; touch-action:manipulation;
-  }
-  button.primary { margin-top:12px; background:var(--accent); color:var(--on-accent); }
-  button.primary:hover { background:var(--accent-press); }
-  button.primary:disabled { background:var(--sunken); color:var(--muted); cursor:not-allowed; }
+/* bloco "pensando" */
+.tblock { border-radius:18px; background:var(--s1); box-shadow:var(--sh), inset 0 0 0 1px var(--line); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); overflow:hidden; }
+.think-h { display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px; text-align:left; }
+.think-h .lbl { flex:1; min-width:0; font-size:14.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.shim { background:linear-gradient(90deg,var(--mut) 0%,var(--violet) 40%,var(--pink) 50%,var(--mut) 65%); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:shim 1.8s linear infinite; }
+@keyframes shim { from { background-position:150% 0; } to { background-position:-50% 0; } }
+.think-h .tm { font:400 12px var(--mono); color:var(--dim); font-variant-numeric:tabular-nums; }
+.think-h .chev { color:var(--dim); transition:transform .35s var(--ease); }
+.tblock.open .think-h .chev { transform:rotate(180deg); }
+.think-b { display:grid; grid-template-rows:0fr; transition:grid-template-rows .45s var(--ease); }
+.tblock.open .think-b { grid-template-rows:1fr; }
+.think-b > div { overflow:hidden; }
+.think-in { padding:0 14px 14px; display:flex; flex-direction:column; gap:12px; }
+.tblock.bad .lbl { color:var(--err); }
+.spin { width:20px; height:20px; position:relative; flex:none; }
+.spin::before { content:""; position:absolute; inset:0; border-radius:50%; background:var(--conic); animation:turn 1.2s linear infinite; -webkit-mask:radial-gradient(circle,transparent 5px,#000 5.5px); mask:radial-gradient(circle,transparent 5px,#000 5.5px); }
+.donei { color:var(--mint); display:inline-grid; animation:popIn .4s var(--spring); }
+.badi { color:var(--err); display:inline-grid; animation:popIn .4s var(--spring); }
+@keyframes popIn { from { transform:scale(.3); } }
+.live { display:flex; align-items:center; gap:3px; height:34px; }
+.live i { flex:1; max-width:4px; border-radius:3px; background:linear-gradient(var(--amber),var(--pink),var(--violet)); height:14%; transition:height .12s ease; }
+.track { height:5px; border-radius:9px; background:var(--s3); overflow:hidden; }
+.track i { display:block; height:100%; width:0; border-radius:9px; background:var(--spectrum); transition:width .35s var(--ease); position:relative; }
+.track i::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent); background-size:200% 100%; animation:shim 1.2s linear infinite; }
+.keep { margin:0; font-size:12.5px; color:var(--dim); display:flex; align-items:center; gap:6px; }
+.steps { display:flex; flex-direction:column; gap:2px; }
+.step { display:flex; align-items:center; gap:10px; padding:5px 0; font-size:14px; animation:msgIn .4s var(--ease) both; }
+.step .ic { width:20px; height:20px; display:grid; place-items:center; flex:none; }
+.step.wait { color:var(--dim); }
+.step.run { color:var(--ink); } .step.ok { color:var(--mut); }
+.step .r { margin-left:auto; font:400 11.5px var(--mono); color:var(--dim); text-align:right; }
+.lines { display:grid; gap:8px; position:relative; padding:4px 0; overflow:hidden; }
+.ln { display:flex; gap:8px; align-items:center; }
+.ln .a { width:14px; height:14px; border-radius:50%; background:var(--s3); flex:none; transition:background .3s; }
+.ln .t { height:7px; border-radius:5px; background:var(--s3); transition:background .3s, box-shadow .3s; }
+.ln.hit .t { background:linear-gradient(90deg,var(--amber),var(--pink)); box-shadow:0 0 10px rgba(240,67,140,.35); }
+.ln.hit .a { background:var(--violet); }
+.scan { position:absolute; left:-14px; right:-14px; height:28px; top:-28px; background:linear-gradient(transparent,rgba(123,77,255,.18),rgba(240,67,140,.12),transparent); animation:scan 1.4s linear infinite; pointer-events:none; }
+@keyframes scan { to { top:100%; } }
 
-  /* Progresso: régua com cursor de reprodução */
-  .status { padding:0 4px; }
-  .track { display:none; position:relative; height:14px; margin:24px 0 8px; border-radius:7px; background:var(--sunken); border:1px solid var(--line); }
-  .fill { position:relative; height:100%; width:0; background:var(--accent); border-radius:6px; transition:width .4s; }
-  .fill::after { content:""; position:absolute; right:-2px; top:-7px; width:4px; height:26px; border-radius:2px; background:var(--cue); box-shadow:0 0 0 2px var(--surface); }
-  .keep { display:none; margin:6px 0 4px; font-size:14px; color:var(--muted); }
-  .busy .track, .busy .keep { display:block; }
-  #msg { margin:12px 0 4px; font-size:15px; color:var(--text); }
-  #msg:empty { display:none; }
-  #msg.err { color:var(--err); background:var(--err-bg); border-radius:12px; padding:12px 14px; }
-  .busy #msg { margin-top:0; }
+/* ações embaixo da resposta */
+.acts { display:flex; gap:2px; align-items:center; flex-wrap:wrap; margin-left:-8px; }
+.acts > * { animation:msgIn .4s var(--ease) both; }
+.acts > :nth-child(2) { animation-delay:.05s; } .acts > :nth-child(3) { animation-delay:.1s; } .acts > :nth-child(4) { animation-delay:.15s; } .acts > :nth-child(5) { animation-delay:.2s; }
+.act { height:36px; min-width:36px; padding:0 10px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; gap:6px; color:var(--mut); font-size:13.5px; font-weight:500; }
+.act:hover { background:var(--s2); color:var(--ink); }
+.act.ok { color:var(--mint); }
+.meta { font:400 11.5px var(--mono); color:var(--dim); margin-left:auto; padding-right:4px; }
+.follow { display:flex; gap:8px; flex-wrap:wrap; }
+.chip { display:inline-flex; flex:none; white-space:nowrap; align-items:center; gap:7px; min-height:38px; padding:0 14px; border-radius:999px; font-size:13.5px; font-weight:500; color:var(--ink); background:var(--s1); box-shadow:var(--sh), inset 0 0 0 1px var(--line); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); animation:msgIn .5s var(--ease) both; }
+.chip:hover { background:var(--paper); }
+.chip .i { color:var(--violet); }
+.follow .chip:nth-child(2) { animation-delay:.08s; } .follow .chip:nth-child(3) { animation-delay:.16s; } .follow .chip:nth-child(4) { animation-delay:.24s; }
+.card { display:flex; flex-direction:column; gap:12px; padding:14px; border-radius:18px; background:var(--s1); box-shadow:var(--sh), inset 0 0 0 1px var(--line); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
+.card .row { display:flex; align-items:center; gap:12px; min-width:0; }
+.card .row > span:not(.tile) { min-width:0; }
+.card .row b { display:block; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.card .row small { display:block; color:var(--mut); font-size:13px; overflow-wrap:anywhere; }
+.card .line { margin:0; font-size:14px; color:var(--mut); overflow-wrap:anywhere; }
+.card .line strong { color:var(--ink); font-weight:600; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:6px; }
+.stat { padding:10px 4px; border-radius:12px; background:var(--paper); box-shadow:inset 0 0 0 1px var(--line); display:flex; flex-direction:column; align-items:center; gap:4px; animation:popIn .5s var(--spring) both; }
+.stat .i { color:var(--mut); }
+.stat b { font:500 18px var(--mono); font-variant-numeric:tabular-nums; line-height:1; }
+.stat small { color:var(--mut); font-size:11px; }
+.stat:nth-child(2) { animation-delay:.06s; } .stat:nth-child(3) { animation-delay:.12s; } .stat:nth-child(4) { animation-delay:.18s; } .stat:nth-child(5) { animation-delay:.24s; }
+.langrow { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--mut); }
+.langrow button { color:var(--violet); font-weight:600; min-height:36px; }
+.btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.btns > .full { grid-column:1 / -1; }
+.erow { display:flex; flex-wrap:wrap; gap:8px; }
+.erow .btn { flex:0 1 auto; max-width:100%; }
+.btn { white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:0 16px; border-radius:999px; font-weight:600; font-size:14.5px; position:relative; overflow:hidden; text-align:center; }
+.btn.pri { background:var(--ink); color:#fff; box-shadow:0 6px 18px -8px rgba(20,22,48,.5); }
+.btn.pri::after { content:""; position:absolute; inset:0; background:linear-gradient(100deg,transparent 35%,rgba(160,130,255,.45) 50%,transparent 65%); background-size:250% 100%; animation:sheen 3.2s ease-in-out infinite; }
+@keyframes sheen { 0% { background-position:150% 0; } 60%, 100% { background-position:-100% 0; } }
+.btn.sec { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 1px var(--line), var(--sh); }
+.btn:disabled { opacity:.5; }
+.btn span, .btn .i { position:relative; z-index:1; }
+.avs { display:flex; }
+.avs span { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font:600 10.5px var(--ui); color:#fff; box-shadow:0 0 0 2px var(--paper); animation:popIn .5s var(--spring) both; }
+.avs span + span { margin-left:-6px; }
 
-  /* Resultado */
-  .result { margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:20px 12px 12px; scroll-margin-top:16px; }
-  .rhead { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:0 8px 12px; }
-  .rhead h2 { margin:0; font-family:var(--font-display); font-weight:800; font-size:24px; letter-spacing:-0.02em; }
-  #count { color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums; }
-  #out, #sumOut { display:block; width:100%; height:min(46vh, 340px); resize:vertical; padding:14px; font:inherit; font-size:16px; line-height:1.55; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:16px; }
-  button.btn { border:0; }
-  .cues { list-style:none; margin:0; padding:4px 0; max-height:min(46vh, 340px); overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:16px; -webkit-overflow-scrolling:touch; }
-  .cues li { display:grid; grid-template-columns:52px 1fr; gap:12px; padding:10px 14px; }
-  .cues li + li { border-top:1px solid var(--line); }
-  .cues time { color:var(--accent-text); font-weight:600; font-size:14px; font-variant-numeric:tabular-nums; padding-top:2px; }
-  .cues .t { overflow-wrap:anywhere; }
-  .cues .more { display:block; padding:10px 14px; color:var(--muted); font-size:14px; }
-  .dl { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-  .btn.save { background:var(--accent); color:var(--on-accent); }
-  .btn.save:hover { background:var(--accent-press); }
-  .btn.alt { background:transparent; color:var(--accent-text); border:1.5px solid var(--line-strong); }
-  .btn.alt:hover { border-color:var(--accent); }
-  .btn.alt[aria-disabled="true"] { opacity:.5; pointer-events:none; }
-  .dl + .dl { margin-top:10px; }
+/* ---------- caixa de mensagem ---------- */
+.comp-wrap { position:fixed; z-index:20; left:0; right:0; bottom:0; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); padding-top:24px; background:linear-gradient(rgba(246,246,250,0),rgba(246,246,250,.7) 45%,var(--bg) 75%); }
+.comp-in { max-width:var(--w); margin:0 auto; padding-left:max(12px,env(safe-area-inset-left,0px)); padding-right:max(12px,env(safe-area-inset-right,0px)); position:relative; }
+.comp { position:relative; border-radius:26px; padding:1.5px; background:conic-gradient(from var(--ang),rgba(20,22,48,.1),rgba(20,22,48,.1) 40%,var(--blue),var(--violet),var(--pink),var(--amber),rgba(20,22,48,.1) 95%); animation:turn calc(8s / var(--spd)) linear infinite; }
+.comp::before { content:""; position:absolute; inset:0; border-radius:inherit; background:inherit; filter:blur(18px); opacity:.18; z-index:-1; transition:opacity .5s; }
+body.typing .comp::before, body.drag .comp::before { opacity:.5; }
+body.think { --spd:2.6; }
+.comp-box { border-radius:24.5px; background:rgba(255,255,255,.97); padding:10px 10px 8px; }
+.pend { display:flex; gap:8px; padding:2px 2px 8px; flex-wrap:wrap; }
+.pend .att { animation:meIn .45s var(--spring) both; padding-right:6px; box-shadow:inset 0 0 0 1px var(--line); }
+.pend .x { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; color:var(--mut); background:var(--s2); flex:none; }
+.comp textarea { display:block; width:100%; background:none; border:0; outline:none; resize:none; color:var(--ink); font:16px/1.45 var(--ui); padding:6px 8px; height:34px; max-height:140px; }
+.comp textarea::placeholder { color:var(--dim); }
+.comp-row { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.cbtn { height:38px; min-width:38px; padding:0 11px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; justify-content:center; color:var(--mut); font-size:13.5px; font-weight:500; box-shadow:inset 0 0 0 1px var(--line); }
+.cbtn:hover { color:var(--ink); background:var(--s2); }
+.cbtn.plus { padding:0; width:38px; }
+.cbtn.plus .i { transition:transform .4s var(--spring); }
+.cbtn.plus[aria-expanded=true] .i { transform:rotate(45deg); }
+.send { margin-left:auto; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:var(--ink); color:#fff; transition:transform .3s var(--spring), opacity .25s, background .3s; }
+.send:disabled { opacity:.22; transform:scale(.9); }
+.send .i { width:18px; height:18px; stroke-width:2.2; }
+.send .stopi { display:none; width:12px; height:12px; border-radius:3px; background:#fff; }
+.send.stop .stopi { display:block; } .send.stop .i { display:none; }
+.send.wait { opacity:1; background:var(--s3); }
+.send.wait .i { display:none; }
+.send.wait::before { content:""; width:20px; height:20px; border-radius:50%; background:var(--conic); animation:turn 1.2s linear infinite; -webkit-mask:radial-gradient(circle,transparent 6px,#000 6.5px); mask:radial-gradient(circle,transparent 6px,#000 6.5px); }
+.fine { text-align:center; font-size:11.5px; color:var(--dim); margin:8px 0 0; }
+.pop { position:absolute; left:12px; bottom:calc(100% + 8px); width:min(310px,calc(100% - 24px)); padding:6px; border-radius:18px; background:rgba(255,255,255,.98); box-shadow:0 0 0 1px var(--line), 0 24px 50px -12px rgba(20,22,48,.3); transform-origin:bottom left; animation:popUp .35s var(--spring) both; }
+@keyframes popUp { from { opacity:0; transform:scale(.85) translateY(10px); } }
+.pop button { display:flex; align-items:center; gap:12px; width:100%; padding:10px; border-radius:12px; text-align:left; animation:msgIn .35s var(--ease) both; }
+.pop button:nth-child(2) { animation-delay:.05s; }
+.pop button:hover { background:var(--s2); }
+.pop b { display:block; font-weight:500; font-size:14.5px; } .pop small { display:block; color:var(--mut); font-size:12.5px; }
+.tobottom { position:absolute; left:50%; top:-50px; width:38px; height:38px; margin-left:-19px; border-radius:50%; display:grid; place-items:center; background:var(--paper); box-shadow:0 0 0 1px var(--line), var(--sh); color:var(--ink); animation:popUp .35s var(--spring) both; }
 
-  /* Resumo */
-  .sum { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
-  .sum h3 { margin:0 8px 4px; font-family:var(--font-display); font-weight:800; font-size:20px; letter-spacing:-0.02em; }
-  .sum .lead { margin:0 8px 12px; color:var(--muted); font-size:15px; }
-  .sum .opts { margin-top:0; }
-  .sum button.primary:disabled { opacity:.7; }
-  #sumMsg { margin:12px 4px 0; font-size:15px; }
-  #sumMsg:empty { display:none; }
-  #sumMsg.err { color:var(--err); background:var(--err-bg); border-radius:12px; padding:12px 14px; margin:12px 0 0; }
-  #sumOut { margin-top:12px; }
-  @media (min-width:520px) { .dl { flex-direction:row; } .dl .btn { flex:1; } }
+/* ---------- folhas (de baixo) e gaveta ---------- */
+.scrim { position:fixed; inset:0; z-index:40; background:rgba(20,22,48,.28); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:fade .3s both; }
+.scrim.out { animation:fadeO .25s both; }
+@keyframes fade { from { opacity:0; } } @keyframes fadeO { to { opacity:0; } }
+.sheet { position:fixed; z-index:41; left:0; right:0; bottom:0; max-width:600px; margin:0 auto; max-height:88svh; display:flex; flex-direction:column; border-radius:26px 26px 0 0; background:var(--paper); box-shadow:0 -10px 40px -10px rgba(20,22,48,.25); padding:8px max(18px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px)); animation:sheetUp .5s var(--spring) both; }
+.sheet.tall { height:88svh; }
+.sheet.out { animation:sheetDn .3s var(--ease) both; }
+@keyframes sheetUp { from { transform:translateY(100%); } }
+@keyframes sheetDn { to { transform:translateY(100%); } }
+.grab { width:38px; height:5px; border-radius:9px; background:var(--s3); margin:2px auto 12px; flex:none; }
+.sheet-h { display:flex; align-items:flex-start; gap:12px; }
+.sheet-h > div { flex:1; min-width:0; }
+.sheet h3 { margin:0 0 4px; font-size:19px; font-weight:600; letter-spacing:-.02em; }
+.sheet .sub { color:var(--mut); font-size:14px; margin:0 0 14px; }
+.sheet .scroll { overflow:auto; flex:1; min-height:0; margin:0 -18px; padding:0 18px; -webkit-overflow-scrolling:touch; }
+.opt { display:flex; align-items:center; gap:12px; width:100%; padding:12px; border-radius:14px; text-align:left; animation:msgIn .4s var(--ease) both; }
+.opt:hover { background:var(--s2); }
+.opt + .opt { margin-top:2px; }
+.opt:nth-child(2) { animation-delay:.04s; } .opt:nth-child(3) { animation-delay:.08s; } .opt:nth-child(4) { animation-delay:.12s; }
+.opt b { display:block; font-weight:500; } .opt small { display:block; color:var(--mut); font-size:13px; }
+.opt .tx { flex:1; min-width:0; }
+.radio { width:22px; height:22px; border-radius:50%; box-shadow:inset 0 0 0 1.5px var(--dim); display:grid; place-items:center; flex:none; transition:box-shadow .3s; }
+.radio::after { content:""; width:12px; height:12px; border-radius:50%; background:var(--spectrum); transform:scale(0); transition:transform .35s var(--spring); }
+.opt[aria-checked=true] .radio { box-shadow:inset 0 0 0 1.5px var(--violet); }
+.opt[aria-checked=true] .radio::after { transform:scale(1); }
+.reo-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; padding:8px 0 14px; }
+.reo-card .orbbox { width:72px; height:72px; }
+.reo-card h3 { display:flex; align-items:center; gap:8px; }
+.reo-card p { margin:0; color:var(--mut); max-width:40ch; }
+.feats { display:grid; gap:2px; margin:4px 0 8px; }
+.feat { display:flex; gap:12px; align-items:center; padding:10px 4px; font-size:14.5px; animation:msgIn .4s var(--ease) both; }
+.feat:nth-child(2) { animation-delay:.06s; } .feat:nth-child(3) { animation-delay:.12s; }
 
-  /* Cartão "Conversa do WhatsApp (.zip)" */
-  .zipcard { display:flex; align-items:center; gap:12px; width:100%; margin-top:12px; padding:14px; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:inherit; font:inherit; text-align:left; cursor:pointer; touch-action:manipulation; }
-  .zipcard:hover { border-color:var(--accent); }
-  .zipcard .ficon { color:var(--accent-text); }
-  .zipcard .fbody strong { display:block; }
-  .zipcard .fbody span { display:block; font-size:14px; color:var(--muted); }
+/* filtros e lista da conversa */
+.filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
+.fld { position:relative; display:block; height:56px; border-radius:14px; background:var(--s2); overflow:hidden; box-shadow:inset 0 0 0 1px transparent; transition:box-shadow .2s; }
+.fld.wide { grid-column:1 / -1; }
+.fld .k { position:absolute; left:14px; top:7px; font-size:11.5px; color:var(--mut); pointer-events:none; }
+.fld select, .fld input { position:absolute; inset:0; width:100%; height:100%; margin:0; padding:22px 12px 0 14px; border:0; background:transparent; color:var(--ink); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; min-width:0; outline:none; }
+.fld:focus-within { box-shadow:inset 0 0 0 1.5px var(--violet); }
+.fld.sel::after { content:""; position:absolute; right:16px; top:50%; width:7px; height:7px; margin-top:-5px; border-right:1.75px solid var(--mut); border-bottom:1.75px solid var(--mut); transform:rotate(45deg); pointer-events:none; }
+.mlist { display:flex; flex-direction:column; list-style:none; margin:0; padding:0; }
+.mi { display:flex; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+.mi:first-child { border-top:0; }
+.mi > div { min-width:0; flex:1; }
+.av { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font:600 11px var(--ui); color:#fff; flex:none; }
+.who { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.who b { font-weight:600; font-size:14px; } .who time { font:400 11.5px var(--mono); color:var(--dim); }
+.kind { display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:var(--mut); padding:1px 7px 1px 5px; border-radius:6px; background:var(--s2); }
+.kind .i { width:12px; height:12px; }
+.kind.conv { color:var(--violet); background:rgba(123,77,255,.08); }
+.mi p { margin:3px 0 0; color:var(--ink2); font-size:14.5px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.mi.err p { color:var(--err); }
+.mempty { padding:24px 0; text-align:center; color:var(--mut); }
+.more { width:100%; min-height:44px; margin:6px 0; border-radius:12px; color:var(--violet); font-weight:600; background:var(--s2); }
+.sheet-acts { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-top:12px; border-top:1px solid var(--line); margin-top:4px; }
+.sheet-acts .full { grid-column:1 / -1; }
 
-  /* Tela da conversa do WhatsApp */
-  .back { display:inline-flex; align-items:center; min-height:44px; margin:-8px 0 8px; padding:0 4px; background:none; border:0; color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer; }
-  .wa-head { padding:8px 8px 4px; }
-  .wa-head h2 { margin:0 0 4px; font-family:var(--font-display); font-weight:800; font-size:24px; letter-spacing:-0.02em; }
-  .wa-file { margin:0; color:var(--muted); font-size:14px; overflow-wrap:anywhere; }
-  .stats { display:flex; flex-wrap:wrap; gap:8px; margin:12px 8px 4px; padding:0; list-style:none; }
-  .stats li { padding:6px 12px; border-radius:999px; background:var(--sunken); border:1px solid var(--line); font-size:14px; font-variant-numeric:tabular-nums; }
-  .wa-line { margin:12px 8px 0; font-size:15px; color:var(--muted); overflow-wrap:anywhere; }
-  .wa-line strong { color:var(--text); }
-  .wa-box { margin:12px 0 0; padding:12px 14px; border-radius:12px; font-size:15px; }
-  .wa-box.warn { color:var(--err); background:var(--err-bg); }
-  .wa-box.info { color:var(--muted); background:var(--sunken); border:1px solid var(--line); }
-  .wa-box:empty { display:none; }
-  .wa-panel .opts { margin:12px 0 0; }
-  .usage { margin:20px 8px 0; font-size:14px; color:var(--muted); }
-  .usage p { margin:0 0 4px; }
-  .usage .note { margin:6px 0 0; font-size:13px; }
-  .usage .linkbtn { min-height:44px; padding:0; background:none; border:0; color:var(--accent-text); font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; }
-  .codeform { display:flex; gap:8px; margin:4px 0 8px; }
-  .codeform input { flex:1; min-width:0; min-height:48px; padding:0 14px; border:1px solid var(--line); border-radius:12px; background:var(--sunken); color:var(--text); font:inherit; font-size:16px; }
-  .codeform .btn { margin-top:0; flex:none; }
-  .btn.small { min-height:44px; font-size:15px; margin-top:10px; }
+.drawer { position:fixed; z-index:41; top:0; bottom:0; left:0; width:min(330px,88vw); background:var(--paper); box-shadow:10px 0 40px -10px rgba(20,22,48,.2); padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px)); display:flex; flex-direction:column; gap:4px; overflow:auto; animation:drIn .45s var(--spring) both; }
+.drawer.out { animation:drOut .28s var(--ease) both; }
+@keyframes drIn { from { transform:translateX(-100%); } } @keyframes drOut { to { transform:translateX(-100%); } }
+.drawer .brand { display:flex; align-items:center; gap:10px; padding:6px 6px 12px; font-weight:600; font-size:17px; letter-spacing:-.02em; }
+.logo { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; position:relative; overflow:hidden; background:var(--ink); }
+.logo::before { content:""; position:absolute; inset:-30%; background:var(--conic); animation:turn 8s linear infinite; opacity:.9; filter:blur(5px); }
+.logo span { position:relative; display:flex; gap:2px; align-items:center; height:13px; }
+.logo i { width:2.5px; border-radius:2px; background:#fff; animation:eq 1.2s ease-in-out infinite; }
+.logo i:nth-child(1) { height:45%; animation-delay:-.2s; } .logo i:nth-child(2) { height:100%; animation-delay:-.6s; } .logo i:nth-child(3) { height:70%; animation-delay:-.9s; } .logo i:nth-child(4) { height:35%; animation-delay:-.4s; }
+.dlab { font:500 11px var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--dim); padding:16px 8px 6px; }
+.ditem { display:flex; align-items:center; gap:10px; width:100%; padding:11px 8px; border-radius:12px; text-align:left; font-size:14.5px; color:var(--ink2); animation:drItem .45s var(--ease) both; }
+.ditem:hover { background:var(--s2); }
+.ditem .i { color:var(--mut); }
+@keyframes drItem { from { opacity:0; transform:translateX(-14px); } }
+.ditem.new { background:var(--s2); color:var(--ink); font-weight:500; }
+.usage { padding:4px 8px; font-size:14px; color:var(--mut); display:flex; flex-direction:column; gap:8px; animation:drItem .45s .1s var(--ease) both; }
+.usage p { margin:0; }
+.usage .track { height:6px; }
+.usage .note { font-size:12.5px; color:var(--dim); }
+.linkbtn { align-self:flex-start; min-height:40px; color:var(--violet); font-weight:600; }
+.codeform { display:flex; gap:8px; }
+.codeform input { flex:1; min-width:0; min-height:46px; padding:0 14px; border:0; border-radius:12px; background:var(--s2); color:var(--ink); font:inherit; font-size:16px; outline:none; box-shadow:inset 0 0 0 1px transparent; }
+.codeform input:focus { box-shadow:inset 0 0 0 1.5px var(--violet); }
+.codeform .btn { min-height:46px; }
+#codeMsg:empty { display:none; }
+.dfoot { margin-top:auto; padding:16px 8px 0; font-size:12px; color:var(--dim); display:flex; gap:8px; align-items:flex-start; }
 
-  .filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
-  .filters .fld { position:relative; display:block; height:60px; border:1px solid var(--line); border-radius:14px; background:var(--sunken); overflow:hidden; }
-  .filters .fld.wide { grid-column:1 / -1; }
-  .filters .k { position:absolute; left:14px; top:7px; font-size:12px; color:var(--muted); pointer-events:none; }
-  .filters select, .filters input { position:absolute; inset:0; width:100%; height:100%; margin:0; padding:24px 12px 0 14px; border:0; background:transparent; color:var(--text); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; min-width:0; }
-  .filters .fld:focus-within { border-color:var(--accent); }
-  .filters input[type=search]::-webkit-search-cancel-button { margin-right:4px; }
-  .wlist { list-style:none; margin:0; padding:4px 0; max-height:min(60vh, 520px); overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:16px; -webkit-overflow-scrolling:touch; }
-  .wlist li { padding:10px 14px; }
-  .wlist li + li { border-top:1px solid var(--line); }
-  .wlist .meta { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
-  .wlist .who { color:var(--text); font-weight:600; font-size:14px; }
-  .wlist .tag { padding:0 8px; border-radius:999px; border:1px solid var(--line-strong); color:var(--accent-text); font-size:12px; font-weight:600; }
-  .wlist .body { margin-top:2px; overflow-wrap:anywhere; white-space:pre-wrap; }
-  .wlist .empty { padding:18px 14px; color:var(--muted); text-align:center; }
-  .wlist .moreli { padding:6px 14px; }
-  .wlist .moreli button { width:100%; min-height:44px; border:0; border-radius:12px; background:transparent; color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer; }
+.toast { position:fixed; z-index:60; left:50%; top:calc(66px + env(safe-area-inset-top,0px)); transform:translate(-50%,-14px); opacity:0; display:flex; align-items:center; gap:8px; padding:9px 14px; border-radius:999px; background:var(--ink); color:#fff; box-shadow:0 10px 30px -10px rgba(20,22,48,.5); font-size:13.5px; transition:.4s var(--spring); pointer-events:none; max-width:calc(100% - 40px); }
+.toast.on { opacity:1; transform:translate(-50%,0); }
+.toast .i { color:#7FF0D6; }
 
-  /* Chat com o Reo */
-  .reo .lead { margin:0 8px 12px; color:var(--muted); font-size:15px; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
-  .chips button { min-height:44px; padding:0 14px; border:1.5px solid var(--line-strong); border-radius:999px; background:transparent; color:var(--accent-text); font:inherit; font-size:15px; cursor:pointer; touch-action:manipulation; }
-  .chips button:disabled { opacity:.5; cursor:not-allowed; }
-  .reolog { display:flex; flex-direction:column; gap:10px; max-height:min(60vh, 520px); overflow:auto; padding:2px; -webkit-overflow-scrolling:touch; }
-  .reolog:empty { display:none; }
-  .bub { max-width:92%; padding:10px 14px; border-radius:16px; overflow-wrap:anywhere; }
-  .bub.me { align-self:flex-end; background:var(--accent); color:var(--on-accent); border-bottom-right-radius:6px; white-space:pre-wrap; }
-  .bub.reo { align-self:flex-start; background:var(--sunken); border:1px solid var(--line); border-bottom-left-radius:6px; }
-  .bub.reo.err { color:var(--err); background:var(--err-bg); border-color:transparent; }
-  .bub.reo > :first-child { margin-top:0; } .bub.reo > :last-child { margin-bottom:0; }
-  .bub.reo p, .bub.reo h4 { margin:8px 0; } .bub.reo ul, .bub.reo ol { margin:8px 0; padding-left:22px; }
-  .bub.reo h4 { font-family:var(--font-display); font-size:16px; }
-  .bubacts { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
-  .bubacts span { font-size:14px; color:var(--muted); flex:1 1 100%; }
-  .bubacts button { min-height:44px; padding:0 16px; border-radius:12px; border:1.5px solid var(--line-strong); background:transparent; color:var(--accent-text); font:inherit; font-size:15px; font-weight:600; cursor:pointer; }
-  .bubacts button:hover { border-color:var(--accent); }
-  .reoform { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
-  .reoform textarea { width:100%; min-height:64px; max-height:160px; resize:vertical; padding:12px 14px; font:inherit; font-size:16px; line-height:1.4; color:var(--text); background:var(--sunken); border:1px solid var(--line); border-radius:14px; }
-  .reoform button.primary { margin-top:0; }
-  .note { margin:12px 8px 0; font-size:13px; color:var(--muted); }
+/* ícones animados: cada ícone tem um movimento próprio */
+@keyframes eq { 50% { transform:scaleY(.35); } }
+.eqi { display:inline-flex; gap:2px; align-items:center; justify-content:center; width:20px; height:20px; flex:none; }
+.eqi i { width:2.2px; border-radius:2px; background:currentColor; animation:eq 1s ease-in-out infinite; }
+.eqi i:nth-child(1) { height:30%; animation-delay:-.1s; } .eqi i:nth-child(2) { height:65%; animation-delay:-.45s; } .eqi i:nth-child(3) { height:100%; animation-delay:-.75s; } .eqi i:nth-child(4) { height:55%; animation-delay:-.3s; } .eqi i:nth-child(5) { height:30%; animation-delay:-.6s; }
+.eqi.sm { width:16px; height:16px; } .eqi.sm i { width:1.8px; }
+:is(.tile,.stat,.chip,.ditem,.cbtn,.kind,.btn,.opt,.feat,.act) svg:is(:has(use[href="#chat"]),:has(use[href="#cal"]),:has(use[href="#edit"])) { animation:ic-tilt 3s ease-in-out infinite; transform-origin:50% 70%; }
+:is(.tile,.stat,.chip,.ditem,.cbtn,.kind,.btn,.opt,.act,.feat) svg:is(:has(use[href="#book"]),:has(use[href="#zip"]),:has(use[href="#image"]),:has(use[href="#file"]),:has(use[href="#cc"]),:has(use[href="#md"]),:has(use[href="#list"]),:has(use[href="#user"]),:has(use[href="#users"]),:has(use[href="#copy"])) { animation:ic-float 2.6s ease-in-out infinite; }
+:is(.tile,.chip,.cbtn,.opt,.btn,.feat,.ditem) svg:has(use[href="#spark"]) { animation:ic-twinkle 2.4s ease-in-out infinite; }
+:is(.tile,.cbtn,.chip,.opt,.langrow) svg:has(use[href="#globe"]) { animation:ic-spin 9s linear infinite; }
+:is(.tile,.stat,.chip,.kind,.opt,.feat) svg:is(:has(use[href="#mic"]),:has(use[href="#video"]),:has(use[href="#calcheck"])) { animation:ic-pulse 1.8s ease-in-out infinite; }
+:is(.tile,.chip,.opt,.ditem,.feat) svg:is(:has(use[href="#search"]),:has(use[href="#help"]),:has(use[href="#tag"])) { animation:ic-wob 3.2s ease-in-out infinite; }
+:is(.tile,.btn,.opt,.act) svg:has(use[href="#dl"]) { animation:ic-drop 1.8s ease-in-out infinite; }
+:is(.btn,.tile,.ditem) svg:has(use[href="#eye"]) { animation:ic-blink 4s ease-in-out infinite; }
+:is(.ditem,.dfoot,.infobox,.keep) svg:has(use[href="#lock"]) { animation:ic-pulse 2.4s ease-in-out infinite; }
+:is(.keep) svg:has(use[href="#clock"]) { animation:ic-spin 6s linear infinite; }
+.act svg:has(use[href="#refresh"]), .btn svg:has(use[href="#refresh"]) { transition:transform .6s var(--spring); }
+.act:hover svg:has(use[href="#refresh"]), .btn:hover svg:has(use[href="#refresh"]) { transform:rotate(180deg); }
+.ibtn:hover svg:has(use[href="#menu"]) { animation:ic-tilt .8s ease-in-out; }
+.send:not(:disabled):not(.stop):not(.wait) .i { animation:ic-up 1.4s ease-in-out infinite; }
+.donei .i { animation:ic-pulse 2.4s ease-in-out infinite; }
+.stat:nth-child(2) svg { animation-delay:-.4s; } .stat:nth-child(3) svg { animation-delay:-.8s; } .stat:nth-child(4) svg { animation-delay:-1.2s; }
+.cardq:nth-child(2) .tile svg { animation-delay:-.7s; } .cardq:nth-child(3) .tile svg { animation-delay:-1.3s; } .cardq:nth-child(4) .tile svg { animation-delay:-.4s; }
+.chip:nth-child(2) svg { animation-delay:-.6s; } .chip:nth-child(3) svg { animation-delay:-1.1s; }
+@keyframes ic-tilt { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-9deg); } 60% { transform:rotate(7deg); } }
+@keyframes ic-float { 50% { transform:translateY(-2.5px); } }
+@keyframes ic-twinkle { 0%,100% { transform:scale(1) rotate(0); } 50% { transform:scale(.78) rotate(25deg); opacity:.75; } }
+@keyframes ic-spin { to { transform:rotate(360deg); } }
+@keyframes ic-pulse { 50% { transform:scale(1.14); } }
+@keyframes ic-wob { 0%,100% { transform:rotate(0) translate(0,0); } 30% { transform:rotate(-12deg) translate(-1px,0); } 60% { transform:rotate(10deg) translate(1px,-1px); } }
+@keyframes ic-drop { 0%,100% { transform:translateY(0); } 50% { transform:translateY(2px); } }
+@keyframes ic-blink { 0%,92%,100% { transform:scaleY(1); } 96% { transform:scaleY(.15); } }
+@keyframes ic-up { 50% { transform:translateY(-2px); } }
 
-  @media (prefers-reduced-motion: reduce) { * { transition:none !important; scroll-behavior:auto !important; } }
+@media (min-width:640px) { .hello { min-height:calc(100svh - 300px); } .cards { grid-template-columns:repeat(4,1fr); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.001s !important; animation-iteration-count:1 !important; transition-duration:.001s !important; scroll-behavior:auto !important; } }
 </style>
 </head>
 <body>
-<main>
-  <header class="top">
-    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="var(--accent)"/>
-      <rect x="7" y="17" width="18" height="3.5" rx="1.75" fill="#fff"/>
-      <rect x="7" y="23" width="11" height="3.5" rx="1.75" fill="#fff"/>
-      <rect x="21" y="6" width="3.5" height="11" rx="1.75" fill="var(--cue)"/>
-    </svg>
-    <span class="word">Transcriby</span>
-  </header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="wave" viewBox="0 0 24 24"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/></symbol>
+<symbol id="chat" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+<symbol id="spark" viewBox="0 0 24 24"><path d="M12 3 10.1 8.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/></symbol>
+<symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></symbol>
+<symbol id="down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></symbol>
+<symbol id="dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="checkc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></symbol>
+<symbol id="alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+<symbol id="circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="2 3.5"/></symbol>
+<symbol id="mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+<symbol id="image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+<symbol id="video" viewBox="0 0 24 24"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+<symbol id="zip" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v2M12 14v2"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+<symbol id="users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+<symbol id="up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
+<symbol id="arrdown" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/></symbol>
+<symbol id="file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/></symbol>
+<symbol id="cc" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></symbol>
+<symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.8 9.8 0 0 1 6.7 2.7L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.8 9.8 0 0 1-6.7-2.7L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="tag" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+<symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+<symbol id="calcheck" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></symbol>
+<symbol id="md" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 15V9l2.5 3L11 9v6M15 9v6m0 0 2.5-2.5M15 15l-2.5-2.5"/></symbol>
+<symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></symbol>
+<symbol id="edit" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></symbol>
+<symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+</svg>
 
-  <div id="home">
-  <h1>Do vídeo para o texto</h1>
-  <p class="sub">Envie um áudio ou vídeo e receba o texto completo, pronto para copiar e colar numa IA para pesquisar ou achar o que você precisa.</p>
+<div class="sky" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div><canvas id="waves"></canvas></div>
 
-  <div class="panel">
-    <div id="drop" role="button" tabindex="0" aria-label="Escolher arquivo de áudio ou vídeo">
-      <div class="empty">
-        <span class="plus" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </span>
-        <span class="title">Escolher áudio ou vídeo</span>
-        <span class="how"><span class="touch">Toque para abrir seus arquivos</span><span class="mouse">ou arraste para cá</span></span>
-        <span class="fmt">MP3, WAV, M4A, OGG, MP4, MOV, WEBM</span>
-      </div>
-      <div class="chosen">
-        <span class="ficon" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 14h6M7 10.5h10"/></svg>
-        </span>
-        <span class="fbody"><strong id="fname"></strong><span id="fmeta"></span></span>
-        <span class="swap">Trocar</span>
-      </div>
-    </div>
-    <input type="file" id="file" accept="audio/*,video/*" hidden>
+<header class="top"><div class="top-in">
+  <button class="ibtn press" id="openDrawer" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></button>
+  <button class="model press" id="openModel" aria-label="Sobre o Reo 1.0"><span class="orb-s"></span>Reo <span class="ver">1.0</span><svg class="i sm chev"><use href="#down"/></svg></button>
+  <button class="ibtn press" id="newChat" aria-label="Nova conversa"><svg class="i"><use href="#edit"/></svg></button>
+</div></header>
 
-    <div class="opts">
-      <label class="opt"><span class="k">Idioma</span>
-        <select id="lang">
-          <option value="portuguese" selected>Português</option>
-          <option value="">Detectar automaticamente</option>
-          <option value="english">Inglês</option>
-          <option value="spanish">Espanhol</option>
-        </select>
-      </label>
-      <details class="model" id="model">
-        <summary><span class="k">Modelo</span><span class="mname">Reo<span class="badge">Beta</span></span></summary>
-        <div class="mdesc"><p>O Reo é a IA do Transcriby. Foi treinado para entender melhor os áudios, captar as nuances da fala e conseguir explicar o que ouviu. Roda em conjunto com o modelo Argon. Ainda está em fase Beta, então pode ter pequenas falhas enquanto melhoramos.</p></div>
-      </details>
-    </div>
+<main><div id="thread" aria-live="polite"></div></main>
 
-    <button type="button" class="zipcard" id="zipBtn">
-      <span class="ficon" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M12 10v1M12 13v1M12 16v1"/></svg>
-      </span>
-      <span class="fbody"><strong>Conversa do WhatsApp (.zip)</strong><span>Envie a conversa exportada (pode escolher várias de uma vez): transcrevemos áudios e vídeos, descrevemos fotos e organizamos tudo por data e pessoa.</span></span>
-    </button>
-    <input type="file" id="zipFile" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" multiple hidden>
-
-    <button class="primary" id="go" disabled>Transcrever</button>
-
-    <div class="status" id="status">
-      <div class="track" id="track" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill"></div></div>
-      <div id="msg" role="status"></div>
-      <p class="keep">Mantenha esta tela aberta até terminar.</p>
-    </div>
+<div class="comp-wrap" id="compWrap"><div class="comp-in">
+  <button class="tobottom press" id="toBottom" hidden aria-label="Ir para o fim"><svg class="i sm"><use href="#arrdown"/></svg></button>
+  <div class="pop" id="attachPop" role="menu" hidden>
+    <button role="menuitem" class="press" id="pickAv"><span class="tile c-violet"><span class="eqi" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></span><span><b>Áudio ou vídeo</b><small>MP3, WAV, M4A, OGG, MP4, MOV, WEBM</small></span></button>
+    <button role="menuitem" class="press" id="pickWa"><span class="tile c-mint"><svg class="i"><use href="#chat"/></svg></span><span><b>Conversa do WhatsApp</b><small>O .zip exportado (pode escolher vários)</small></span></button>
   </div>
+  <div class="comp"><div class="comp-box">
+    <div class="pend" id="pend" hidden></div>
+    <textarea id="inp" rows="1" maxlength="4000" placeholder="Envie um áudio ou pergunte ao Reo…" aria-label="Mensagem para o Reo"></textarea>
+    <div class="comp-row">
+      <button class="cbtn plus press" id="attach" aria-label="Anexar arquivo" aria-expanded="false"><svg class="i"><use href="#plus"/></svg></button>
+      <button class="cbtn press" id="openLang" aria-label="Idioma do áudio"><svg class="i sm"><use href="#globe"/></svg><span id="langV">Português</span></button>
+      <button class="send" id="send" aria-label="Enviar" disabled><svg class="i"><use href="#up"/></svg><span class="stopi"></span></button>
+    </div>
+  </div></div>
+  <p class="fine">O Reo pode errar. Transcrições automáticas não são cópia perfeita do original.</p>
+  <input type="file" id="fAv" accept="audio/*,video/*" hidden>
+  <input type="file" id="fWa" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" multiple hidden>
+</div></div>
 
-  <section class="result" id="result" hidden aria-labelledby="rt">
-    <div class="rhead"><h2 id="rt">Texto pronto</h2><span id="count"></span></div>
-    <textarea id="out" readonly aria-label="Texto transcrito"></textarea>
-    <div class="dl">
-      <button type="button" id="copy" class="btn save">Copiar texto</button>
-    </div>
-    <div class="dl">
-      <a id="dl-txt" class="btn alt" href="#">Baixar texto (TXT)</a>
-      <a id="dl-srt" class="btn alt" href="#">Baixar SRT com tempo</a>
-    </div>
-
-    <div class="sum">
-      <h3>Resumo</h3>
-      <p class="lead">Ideal para audiolivro, aula ou reunião longa: a IA lê o texto todo e entrega só o que importa.</p>
-      <div class="opts">
-        <label class="opt"><span class="k">Tamanho do resumo</span>
-          <select id="sumSize">
-            <option value="completo" selected>Completo, por assunto</option>
-            <option value="curto">Curto, só o essencial</option>
-          </select>
-        </label>
-      </div>
-      <button type="button" class="primary" id="sumGo">Gerar resumo</button>
-      <div id="sumMsg" role="status"></div>
-      <div id="sumBox" hidden>
-        <textarea id="sumOut" readonly aria-label="Resumo"></textarea>
-        <div class="dl">
-          <button type="button" id="sumCopy" class="btn save">Copiar resumo</button>
-          <a id="sumDl" class="btn alt" href="#">Baixar resumo (TXT)</a>
-        </div>
-      </div>
-    </div>
-  </section>
+<div class="scrim" id="dScrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Menu">
+  <div class="brand"><span class="logo"><span><i></i><i></i><i></i><i></i></span></span>Transcriby</div>
+  <button class="ditem new press" id="dNew"><svg class="i"><use href="#edit"/></svg><span>Nova conversa</span></button>
+  <button class="ditem press" id="dAv"><span class="eqi sm" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Transcrever áudio ou vídeo</span></button>
+  <button class="ditem press" id="dWa"><svg class="i"><use href="#chat"/></svg><span>Organizar conversa do WhatsApp</span></button>
+  <div class="dlab">Seu uso hoje</div>
+  <div class="usage" id="usage">
+    <p id="usageText">Conferindo…</p>
+    <div class="track" id="usageTrack" hidden><i id="usageBar"></i></div>
+    <button type="button" class="linkbtn" id="codeToggle">Tenho um código de liberação</button>
+    <form class="codeform" id="codeForm" hidden>
+      <input id="codeIn" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Código de liberação" placeholder="Digite o código">
+      <button class="btn pri" type="submit"><span>Liberar</span></button>
+    </form>
+    <p id="codeMsg" role="status"></p>
+    <p class="note">O limite é em minutos de uso por dia: o áudio conta pela duração, cada foto vale 0,2 min e cada resumo ou pergunta ao Reo vale 2 min.</p>
   </div>
+  <div class="dlab">Ajuda</div>
+  <button class="ditem press" id="dHow"><svg class="i"><use href="#help"/></svg><span>Como exportar do WhatsApp</span></button>
+  <button class="ditem press" id="dReo"><svg class="i"><use href="#spark"/></svg><span>Sobre o Reo 1.0</span></button>
+  <p class="dfoot"><svg class="i sm"><use href="#lock"/></svg><span>Vídeos não saem do seu aparelho: só o áudio é enviado para transcrever.</span></p>
+</aside>
+<div id="layer"></div>
+<div class="toast" id="toast" role="status"><svg class="i sm"><use href="#checkc"/></svg><span id="toastT"></span></div>
 
-  <section id="wa" hidden aria-label="Conversa do WhatsApp">
-    <button type="button" class="back" id="waBack">← Voltar</button>
-    <div class="panel wa-panel">
-      <div class="wa-head">
-        <h2>Conversa do WhatsApp</h2>
-        <p class="wa-file" id="waFile"></p>
-      </div>
-      <ul class="stats" id="waStats"></ul>
-      <p class="wa-line" id="waPeople"></p>
-      <p class="wa-line" id="waAudio"></p>
-      <div class="wa-box warn" id="waWarn" role="alert"></div>
-      <div class="opts">
-        <label class="opt"><span class="k">Idioma dos áudios</span>
-          <select id="waLang">
-            <option value="portuguese" selected>Português</option>
-            <option value="">Detectar automaticamente</option>
-            <option value="english">Inglês</option>
-            <option value="spanish">Espanhol</option>
-          </select>
-        </label>
-      </div>
-      <div class="wa-box info" id="waInfo">Áudios, o áudio dos vídeos e as fotos são enviados para serem transcritos e descritos. Vídeos não são enviados: só a fala deles. As mensagens de texto só saem deste aparelho se você conversar com o Reo.</div>
-      <button class="primary" id="waGo" disabled>Processar conversa</button>
-      <button type="button" class="btn alt small" id="waStop" hidden>Parar</button>
-      <div class="status">
-        <div class="track" id="waTrack" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="waFill"></div></div>
-        <div id="waMsg" role="status"></div>
-        <p class="keep">Mantenha esta tela aberta até terminar.</p>
-      </div>
-    </div>
-
-    <section class="result" id="waResult" hidden aria-labelledby="wrt">
-      <div class="rhead"><h2 id="wrt">Conversa organizada</h2><span id="waCount"></span></div>
-      <div class="filters">
-        <label class="fld wide" id="fConvWrap" hidden><span class="k">Conversa</span>
-          <select id="fConv"><option value="">Todas as conversas</option></select>
-        </label>
-        <label class="fld wide"><span class="k">Pessoa</span>
-          <select id="fSender"><option value="">Todas as pessoas</option></select>
-        </label>
-        <label class="fld"><span class="k">De</span><input type="date" id="fFrom"></label>
-        <label class="fld"><span class="k">Até</span><input type="date" id="fTo"></label>
-        <label class="fld wide"><span class="k">Buscar na conversa</span><input type="search" id="fQ" autocomplete="off" enterkeyhint="search"></label>
-      </div>
-      <ol class="wlist" id="waList"></ol>
-      <div class="dl">
-        <button type="button" id="waCopy" class="btn save">Copiar texto</button>
-      </div>
-      <div class="dl">
-        <button type="button" id="waMd" class="btn alt">Exportar (.md)</button>
-        <button type="button" id="waMdAll" class="btn alt" hidden>Exportar tudo (.md)</button>
-      </div>
-      <div class="wa-box warn" id="waFail" role="alert"></div>
-      <button type="button" class="btn alt small" id="waRetry" hidden>Tentar de novo os que falharam</button>
-    </section>
-
-    <section class="result reo" id="reo" hidden aria-labelledby="reot">
-      <div class="rhead"><h2 id="reot">Converse com o Reo</h2></div>
-      <p class="lead">O Reo é a IA do Transcriby. Ele responde só sobre esta conversa: resumos, buscas, quem disse o quê.</p>
-      <div class="chips" id="reoChips">
-        <button type="button" data-q="Resuma a conversa.">Resumir a conversa</button>
-        <button type="button" data-q="Quais assuntos foram tratados? Liste em ordem cronológica.">Assuntos</button>
-        <button type="button" data-q="Quais foram os combinados, pedidos e prazos citados?">Combinados e prazos</button>
-      </div>
-      <div class="reolog" id="reoLog" aria-live="polite"></div>
-      <form class="reoform" id="reoForm">
-        <textarea id="reoIn" rows="2" maxlength="4000" placeholder="Pergunte algo sobre a conversa…" aria-label="Pergunta ao Reo"></textarea>
-        <button class="primary" id="reoSend" type="submit">Enviar</button>
-      </form>
-      <p class="note">O Reo pode errar. Transcrições e descrições automáticas não são cópia perfeita do original.</p>
-    </section>
-  </section>
-<div class="usage" id="usage">
-  <p id="usageText"></p>
-  <button type="button" class="linkbtn" id="codeToggle">Tenho um código de liberação</button>
-  <form class="codeform" id="codeForm" hidden>
-    <input id="codeIn" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Código de liberação" placeholder="Digite o código">
-    <button class="btn alt" type="submit">Liberar</button>
-  </form>
-  <p id="codeMsg" role="status"></p>
-  <p class="note">O limite é em minutos de uso por dia: o áudio conta pela duração, cada foto vale 0,2 min e cada resumo ou pergunta ao Reo vale 2 min.</p>
-</div>
-</main>
 <script type="module">
 import { toSrt, toPrettyText } from "./srt.js";
 import { transcribeWithGemini, summarize, askReo, NeedKey, LimitError, setUnlimitedCode, getQuota } from "./gemini.js";
 import { GEMINI_URL, MAX_AUDIO_HOURS } from "./config.js";
 import { decodeToMono16k } from "./audio.js";
-import { parseChat, applyFilters, hasFilters, formatLine, lineContent, toTranscript, toMarkdown, brDate, fmtDuration, TYPE_LABEL } from "./whatsapp.js";
+import { parseChat, applyFilters, hasFilters, lineContent, toTranscript, toMarkdown, brDate, fmtDuration, TYPE_LABEL } from "./whatsapp.js";
 import { openChatZip, measureAudio, processMedia } from "./media.js";
-const $ = id => document.getElementById(id);
-const GO = 'Transcrever', RETRY = 'Tentar de novo', WORK = 'Transcrevendo…';
-let file = null, waFile = null, text = '', urls = [], sumUrl = '';
-const label = t => { $('go').textContent = t; };
-const busy = b => document.body.classList.toggle('busy', b);
 
-// Anota em que etapa a página está. Se o navegador fechar a aba, ao reabrir dá para dizer onde foi.
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const T = $('thread');
+const I = (n, c = '') => `<svg class="i ${c}"><use href="#${n}"/></svg>`;
+const EQ = (c = '') => `<span class="eqi ${c}" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+const fmtSize = b => b >= 1073741824 ? (b / 1073741824).toFixed(1).replace('.', ',') + ' GB' : b >= 1048576 ? Math.round(b / 1048576) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+const fmtMin = n => (Math.round(n * 10) / 10).toLocaleString('pt-BR');
+const plural = (n, one, many) => `${n.toLocaleString('pt-BR')} ${n === 1 ? one : many}`;
+const LANGS = [['portuguese', 'Português', 'Fala em português do Brasil'], ['', 'Detectar automaticamente', 'O Reo descobre o idioma sozinho'], ['english', 'Inglês', 'English'], ['spanish', 'Espanhol', 'Español']];
+const langName = v => (LANGS.find(l => l[0] === v) || LANGS[0])[1];
+let lang = 'portuguese';
+try { const s = localStorage.getItem('transcriby_idioma'); if (s !== null && LANGS.some(l => l[0] === s)) lang = s; } catch (_) {}
+$('langV').textContent = langName(lang);
+
+/* ===================== fundo: ondas de som coloridas pulsando ===================== */
+let kick = 0;
+(() => {
+  const c = $('waves'), x = c.getContext('2d'), d = Math.min(2, window.devicePixelRatio || 1);
+  let w = 0, h = 0, energy = .5, vis = 1;
+  const rs = () => { w = c.clientWidth; h = c.clientHeight; c.width = w * d; c.height = h * d; x.setTransform(d, 0, 0, d, 0, 0); };
+  rs(); addEventListener('resize', rs);
+  const W = [{ c: '61,99,255', f: 1.6, s: .0011, o: 0 }, { c: '123,77,255', f: 2.1, s: .0015, o: 1.7 }, { c: '240,67,140', f: 1.3, s: .0009, o: 3.1 }, { c: '242,150,47', f: 2.6, s: .0019, o: 4.4 }, { c: '16,169,143', f: 1.9, s: .0013, o: 5.6 }];
+  const att = xn => { const z = xn * 2; return Math.pow(2 / (2 + z * z * z * z), 2); };
+  const path = (A, v, ph, y0) => { x.beginPath(); for (let px = 0; px <= w + 4; px += 4) { const xn = px / w * 2 - 1; const y = y0 + A * att(xn) * Math.sin(v.f * Math.PI * xn + ph) * Math.cos(ph * .35 + xn); px ? x.lineTo(px, y) : x.moveTo(px, y); } };
+  const grad = (col, a) => { const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(.22, `rgba(${col},${a})`); g.addColorStop(.78, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`); return g; };
+  function frame(t) {
+    x.clearRect(0, 0, w, h);
+    const b = document.body.classList, target = b.contains('think') ? 1.05 : b.contains('typing') ? .85 : .62;
+    energy += (target - energy) * .03; kick *= .93;
+    // Na conversa as ondas ficam mais fracas para não atrapalhar a leitura (mais fortes quando o Reo trabalha).
+    const vt = document.getElementById('hello') ? 1 : b.contains('think') ? .5 : .22;
+    vis += (vt - vis) * .04; x.globalAlpha = vis;
+    // As ondas saem logo acima da caixa de mensagem, como se ela estivesse ouvindo.
+    const top = $('compWrap').getBoundingClientRect().top + 14, y0 = Math.max(h * .35, Math.min(h * .82, top));
+    const base = Math.min(h * .16, 140) * (energy + kick);
+    for (let i = 0; i < W.length; i++) {
+      const v = W[i];
+      const beat = .55 + .45 * Math.abs(Math.sin(t * .0017 + v.o) * Math.sin(t * .00071 * (i + 1) + v.o * 2));
+      const A = base * beat * (.7 + .3 * Math.sin(t * .0009 + v.o)), ph = t * v.s * (1 + energy) + v.o;
+      path(A, v, ph, y0); x.lineTo(w, y0); x.lineTo(0, y0); x.closePath(); x.fillStyle = `rgba(${v.c},0.045)`; x.fill();
+      path(A, v, ph, y0); x.lineWidth = 8; x.strokeStyle = grad(v.c, .1); x.stroke(); x.lineWidth = 1.7; x.strokeStyle = grad(v.c, .6); x.stroke();
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ===================== altura da caixa, rolagem e aviso ===================== */
+const compH = () => document.documentElement.style.setProperty('--compH', $('compWrap').offsetHeight + 'px');
+new ResizeObserver(compH).observe($('compWrap')); compH();
+const nearBottom = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 160;
+let follow = true;
+addEventListener('scroll', () => { follow = nearBottom(); $('toBottom').hidden = follow || !T.querySelector('.msg,.me'); }, { passive: true });
+const toEnd = force => { if (force || follow) requestAnimationFrame(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' })); };
+$('toBottom').onclick = () => { follow = true; toEnd(true); };
+let toastT = 0;
+const toast = m => { $('toastT').textContent = m; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200); };
+
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (_) { const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.opacity = '0'; document.body.append(a); a.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} a.remove(); return ok; }
+}
+const blobUrl = (content, type) => URL.createObjectURL(new Blob([content], { type: type + ';charset=utf-8' }));
+const downloadText = (name, content, type) => {
+  const url = blobUrl(content, type), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
+
+/* ===================== etapa salva (se a aba fechar sozinha) ===================== */
 const KEY = 'transcriby_etapa';
-let lastEtapa = '';
+let lastEtapa = '', curSize = 0, crashNote = '';
 const mark = etapa => {
   if (etapa === lastEtapa) return; lastEtapa = etapa;
-  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: (file || waFile) ? Math.round((file || waFile).size / 1048576) : 0 })); } catch (_) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ etapa, t: Date.now(), mb: Math.round(curSize / 1048576) })); } catch (_) {}
 };
 const unmark = () => { lastEtapa = ''; try { localStorage.removeItem(KEY); } catch (_) {} };
 try {
   const last = JSON.parse(localStorage.getItem(KEY) || 'null');
-  if (last && Date.now() - last.t < 30 * 60 * 1000) {
-    $('msg').textContent = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB). Provavelmente faltou memória no navegador. Tente um arquivo menor (áudio ou vídeo: envie só o áudio em M4A ou MP3; conversa do WhatsApp: exporte um período menor).`;
-    $('msg').classList.add('err');
-  }
+  if (last && Date.now() - last.t < 30 * 60 * 1000) crashNote = `A página fechou sozinha durante: "${last.etapa}" (arquivo de ${last.mb} MB). Provavelmente faltou memória no navegador. Tente um arquivo menor (áudio ou vídeo: envie só o áudio em M4A ou MP3; conversa do WhatsApp: exporte um período menor).`;
   localStorage.removeItem(KEY);
 } catch (_) {}
 
-const setP = (p, m) => {
-  $('fill').style.width = p + '%'; $('track').setAttribute('aria-valuenow', Math.round(p));
-  $('msg').textContent = m; $('msg').classList.remove('err');
-};
-// Em caso de erro o arquivo continua escolhido: é só apertar "Tentar de novo".
-const fail = m => { unmark(); busy(false); $('msg').textContent = m; $('msg').classList.add('err'); $('go').disabled = false; label(RETRY); };
-
-const fmtSize = b => b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : b >= 1048576 ? Math.round(b / 1048576) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
-const pick = f => {
-  file = f; $('fname').textContent = f.name; $('fmeta').textContent = fmtSize(f.size);
-  $('drop').classList.add('has-file');
-  $('go').disabled = false; label(GO);
-  $('result').hidden = true; busy(false); setP(0, '');
-};
-$('drop').onclick = () => $('file').click();
-$('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
-const isZip = f => /\.zip$/i.test(f.name) || /zip/i.test(f.type);
-// Vários .zip de uma vez viram várias conversas; qualquer outro arquivo usa só o primeiro.
-const sendFiles = list => { const fs = [...list], zips = fs.filter(isZip); if (zips.length) openWa(zips); else if (fs[0]) pick(fs[0]); };
-$('file').onchange = e => sendFiles(e.target.files);
-['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
-['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => sendFiles(e.dataTransfer.files));
-
-const blobUrl = (content, type) => URL.createObjectURL(new Blob([content], { type: type + ';charset=utf-8' }));
-const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-const copyFrom = async (area, btn, idle) => {
-  try { await navigator.clipboard.writeText(area.value); }
-  catch (_) { area.select(); document.execCommand('copy'); }
-  btn.textContent = 'Copiado!'; setTimeout(() => { btn.textContent = idle; }, 2000);
-};
-
-let baseName = 'transcricao';
-function show(segs, name) {
-  baseName = name; text = toPrettyText(segs);
-  urls.forEach(URL.revokeObjectURL); urls = [];
-  const txt = blobUrl(text, 'text/plain'), srt = blobUrl(toSrt(segs), 'application/x-subrip');
-  urls.push(txt, srt);
-  $('dl-txt').href = txt; $('dl-txt').download = name + '.txt';
-  $('dl-srt').href = srt; $('dl-srt').download = name + '.srt';
-  $('out').value = text;
-  const words = (text.match(/\S+/g) || []).length;
-  $('count').textContent = words.toLocaleString('pt-BR') + (words === 1 ? ' palavra' : ' palavras');
-  $('copy').textContent = 'Copiar texto';
-  resetSummary();
-  $('result').hidden = false;
-  $('result').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
-}
-$('copy').onclick = () => copyFrom($('out'), $('copy'), 'Copiar texto');
-
-// Código de acesso do site (só se o servidor pedir). O link ...?codigo=SENHA grava o código neste aparelho e some da barra de endereço.
+/* ===================== código de acesso (só se o servidor pedir) ===================== */
 const KEYSTORE = 'transcriby_codigo';
 try {
   const q = new URLSearchParams(location.search), c = (q.get('codigo') || '').trim();
@@ -502,33 +579,28 @@ try {
 } catch (_) {}
 const getKey = () => { try { return localStorage.getItem(KEYSTORE) || ''; } catch (_) { return ''; } };
 const askKey = () => { const k = (prompt('Digite o código de acesso do site:') || '').trim(); try { localStorage.setItem(KEYSTORE, k); } catch (_) {} return k; };
-// Roda a chamada ao servidor; se ele pedir o código de acesso, pergunta e tenta de novo.
 async function withKey(call) {
-  try { return await withKeyOnce(call); } finally { refreshUsageSoon(); }
-}
-async function withKeyOnce(call) {
-  let key = getKey();
-  for (let tries = 0; ; tries++) {
-    try { return await call(key); }
-    catch (e) {
-      if (e instanceof NeedKey && tries < 2) { key = askKey(); if (!key) throw new Error('Precisa do código de acesso do site.'); continue; }
-      throw e;
+  try {
+    let key = getKey();
+    for (let tries = 0; ; tries++) {
+      try { return await call(key); }
+      catch (e) {
+        if (e instanceof NeedKey && tries < 2) { key = askKey(); if (!key) throw new Error('precisa do código de acesso do site'); continue; }
+        throw e;
+      }
     }
-  }
+  } finally { refreshUsageSoon(); }
 }
 
-// ===================== Limite diário e código de liberação =====================
+/* ===================== limite diário e código de liberação ===================== */
 const CODEKEY = 'transcriby_liberacao';
-const fmtMin = n => (Math.round(n * 10) / 10).toLocaleString('pt-BR');
 const readCode = () => { try { return localStorage.getItem(CODEKEY) || ''; } catch (_) { return ''; } };
 const saveCode = c => { try { c ? localStorage.setItem(CODEKEY, c) : localStorage.removeItem(CODEKEY); } catch (_) {} setUnlimitedCode(c); };
-// Link ...?liberar=CODIGO grava o código neste aparelho e some da barra de endereço.
 try {
   const q = new URLSearchParams(location.search), c = (q.get('liberar') || '').trim();
   if (c) { localStorage.setItem(CODEKEY, c); q.delete('liberar'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
 } catch (_) {}
 setUnlimitedCode(readCode());
-let quota = null;
 async function refreshUsage() {
   if (!GEMINI_URL) return null;
   let q = await getQuota(GEMINI_URL);
@@ -536,10 +608,12 @@ async function refreshUsage() {
     saveCode(''); $('codeMsg').textContent = 'Esse código não vale (mais). Voltou o limite diário normal.';
     q = await getQuota(GEMINI_URL);
   }
-  quota = q;
-  $('usageText').textContent = !q ? '' : q.unlimited ? 'Acesso liberado: sem limite diário.'
+  $('usageText').textContent = !q ? 'Não consegui ver o uso agora.' : q.unlimited ? 'Acesso liberado: sem limite diário.'
     : q.site_full ? 'O limite de uso do site para hoje acabou. Volte amanhã.'
-    : `Uso de hoje: ${fmtMin(q.used)} de ${fmtMin(q.limit)} minutos. Zera à meia-noite.`;
+    : `${fmtMin(q.used)} de ${fmtMin(q.limit)} minutos usados. Zera à meia-noite.`;
+  const showBar = !!(q && !q.unlimited && q.limit > 0);
+  $('usageTrack').hidden = !showBar;
+  if (showBar) $('usageBar').style.width = Math.min(100, 100 * q.used / q.limit) + '%';
   $('codeToggle').hidden = !!(q && q.unlimited);
   return q;
 }
@@ -551,84 +625,489 @@ $('codeForm').onsubmit = async e => {
   const c = $('codeIn').value.trim(); if (!c) return;
   $('codeMsg').textContent = 'Conferindo…'; saveCode(c);
   const q = await refreshUsage();
-  if (q && q.unlimited) { $('codeMsg').textContent = 'Pronto! Acesso liberado neste aparelho.'; $('codeIn').value = ''; $('codeForm').hidden = true; }
+  if (q && q.unlimited) { $('codeMsg').textContent = 'Pronto! Acesso liberado neste aparelho.'; $('codeIn').value = ''; $('codeForm').hidden = true; toast('Acesso liberado'); }
   else if (!q) { saveCode(''); $('codeMsg').textContent = 'Não consegui conferir agora. Tente de novo.'; }
 };
 refreshUsage();
 
-async function runReo(audio, name) {
-  const language = $('lang').value;
-  const onProgress = (i, n) => { setP(10 + Math.round(85 * i / n), n === 1 ? 'Transcrevendo com o Reo…' : `Transcrevendo com o Reo… parte ${Math.min(i + 1, n)} de ${n}`); mark('transcrevendo com o Reo'); };
-  try {
-    const segs = await withKey(key => transcribeWithGemini(audio, { url: GEMINI_URL, language, key, onProgress }));
-    unmark(); busy(false); $('go').disabled = false; label(GO);
-    if (!segs.length) return setP(0, 'Nenhuma fala foi encontrada no arquivo.');
-    setP(100, ''); show(segs, name);
-  } catch (e) {
-    fail(e instanceof LimitError ? e.message + '.' : 'Erro ao transcrever: ' + (e.message || e) + '. Se continuar, aperte "Tentar de novo".');
+/* ===================== gaveta e folhas ===================== */
+function openDrawer(focusCode) {
+  $('dScrim').hidden = false; $('drawer').hidden = false;
+  $('dScrim').classList.remove('out'); $('drawer').classList.remove('out');
+  refreshUsage();
+  if (focusCode) { $('codeForm').hidden = false; setTimeout(() => $('codeIn').focus(), 300); }
+}
+function closeDrawer() {
+  if ($('drawer').hidden) return;
+  $('dScrim').classList.add('out'); $('drawer').classList.add('out');
+  setTimeout(() => { $('dScrim').hidden = true; $('drawer').hidden = true; }, reduce ? 0 : 280);
+}
+$('openDrawer').onclick = () => openDrawer();
+$('dScrim').onclick = closeDrawer;
+$('dNew').onclick = () => { closeDrawer(); newChat(); };
+$('dAv').onclick = () => { closeDrawer(); pickAv(); };
+$('dWa').onclick = () => { closeDrawer(); $('fWa').click(); };
+$('dHow').onclick = () => { closeDrawer(); howTo(); };
+$('dReo').onclick = () => { closeDrawer(); modelSheet(); };
+addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeSheet(); closePop(); } });
+
+let sheetOpen = null;
+function openSheet(html, cls = '') {
+  closeSheet(true);
+  const scrim = el('div', 'scrim'), sh = el('div', 'sheet ' + cls, '<div class="grab"></div>' + html);
+  sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true');
+  $('layer').append(scrim, sh);
+  const close = instant => {
+    if (sheetOpen !== api) return; sheetOpen = null;
+    if (instant || reduce) { scrim.remove(); sh.remove(); return; }
+    scrim.classList.add('out'); sh.classList.add('out'); setTimeout(() => { scrim.remove(); sh.remove(); }, 300);
+  };
+  const api = { el: sh, close };
+  scrim.onclick = () => close();
+  sheetOpen = api;
+  return api;
+}
+function closeSheet(instant) { if (sheetOpen) sheetOpen.close(instant); }
+
+function modelSheet() {
+  openSheet(`<div class="reo-card"><div class="orbbox"><div class="halo"></div><div class="orb"></div></div>
+    <h3>Reo <span class="ver">1.0</span></h3>
+    <p>O Reo é a IA do Transcriby. Foi treinado para entender melhor os áudios, captar as nuances da fala e conseguir explicar o que ouviu. Roda em conjunto com o modelo Argon.</p></div>
+    <div class="feats">
+      <div class="feat"><span class="tile c-violet">${EQ()}</span><span>Transcreve áudio e vídeo, palavra por palavra</span></div>
+      <div class="feat"><span class="tile c-mint">${I('chat')}</span><span>Organiza conversas do WhatsApp por data e pessoa</span></div>
+      <div class="feat"><span class="tile c-pink">${I('spark')}</span><span>Resume e responde perguntas sobre o texto</span></div>
+    </div>
+    <button class="opt" role="radio" aria-checked="true"><span class="tile c-blue"><span class="orb-s"></span></span><span class="tx"><b>Reo 1.0</b><small>Versão atual</small></span><span class="radio"></span></button>`);
+}
+$('openModel').onclick = modelSheet;
+
+function langSheet(after) {
+  const sh = openSheet(`<h3>Idioma do áudio</h3><p class="sub">Em que idioma as pessoas falam no arquivo.</p><div role="radiogroup">${
+    LANGS.map(([v, n, s]) => `<button class="opt" role="radio" data-v="${v}" aria-checked="${v === lang}"><span class="tile c-blue">${I('globe')}</span><span class="tx"><b>${n}</b><small>${s}</small></span><span class="radio"></span></button>`).join('')}</div>`);
+  sh.el.addEventListener('click', e => {
+    const o = e.target.closest('[data-v]'); if (!o) return;
+    lang = o.dataset.v; $('langV').textContent = langName(lang);
+    try { localStorage.setItem('transcriby_idioma', lang); } catch (_) {}
+    sh.el.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-checked', b === o));
+    if (after) after();
+    setTimeout(() => sh.close(), reduce ? 0 : 260);
+  });
+}
+$('openLang').onclick = () => langSheet();
+
+/* ===================== tela inicial ===================== */
+function hello() {
+  const hr = new Date().getHours(), g = hr < 5 ? 'Boa noite' : hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite';
+  const words = (g + '. O que vamos').split(' ');
+  const h1 = words.map((w, i) => `<span class="w" style="animation-delay:${i * .07}s">${w}</span>`).join(' ') +
+    ` <span class="w grad" style="animation-delay:${words.length * .07}s">transcrever</span><span class="w" style="animation-delay:${words.length * .07 + .07}s">?</span>`;
+  const card = (ic, c, t, s, act, i) => `<button class="cardq press" data-act="${act}" style="animation-delay:${.45 + i * .07}s"><span class="tile ${c}">${ic === 'wave' ? EQ() : I(ic)}</span><span><b>${t}</b><small>${s}</small></span></button>`;
+  T.innerHTML = `<section class="hello" id="hello"><div class="orbbox"><div class="halo"></div><div class="orb"></div></div><h1>${h1}</h1>
+    <p>Mande um áudio, um vídeo ou a conversa do WhatsApp. Eu devolvo o texto completo e respondo o que você quiser sobre ele.</p>
+    ${crashNote ? `<div class="warnbox">${esc(crashNote)}</div>` : ''}
+    <div class="cards">${
+      card('wave', 'c-violet', 'Transcrever áudio ou vídeo', 'MP3, M4A, MP4, MOV…', 'av', 0) +
+      card('chat', 'c-mint', 'Organizar o WhatsApp', 'Conversa exportada (.zip)', 'wa', 1) +
+      card('book', 'c-amber', 'Resumir uma aula', 'Texto e resumo juntos', 'sum', 2) +
+      card('help', 'c-blue', 'Como exportar do WhatsApp?', 'Passo a passo', 'how', 3)}</div></section>`;
+  crashNote = '';
+}
+const clearHello = () => { const h = $('hello'); if (h) h.remove(); };
+T.addEventListener('pointermove', e => { const c = e.target.closest('.cardq'); if (!c) return; const r = c.getBoundingClientRect(); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px'); });
+T.addEventListener('click', e => {
+  const c = e.target.closest('[data-act]'); if (!c) return;
+  const a = c.dataset.act;
+  if (a === 'av') pickAv();
+  else if (a === 'sum') pickAv('sum');
+  else if (a === 'wa') $('fWa').click();
+  else if (a === 'how') howTo();
+});
+
+/* ===================== caixa de mensagem ===================== */
+let pending = null, busy = false, stopFn = null, pickMode = '';
+const inp = $('inp');
+function grow() { inp.style.height = '34px'; inp.style.height = Math.min(140, inp.scrollHeight) + 'px'; sendState(); }
+function sendState() {
+  const b = $('send');
+  b.classList.toggle('stop', busy && !!stopFn); b.classList.toggle('wait', busy && !stopFn);
+  if (busy) { b.disabled = !stopFn; b.setAttribute('aria-label', stopFn ? 'Parar' : 'Aguarde'); return; }
+  b.setAttribute('aria-label', 'Enviar');
+  b.disabled = !(inp.value.trim() || pending);
+}
+function setBusy(b, stop = null) { busy = b; stopFn = b ? stop : null; document.body.classList.toggle('think', b); sendState(); }
+inp.addEventListener('input', () => { grow(); kick = Math.min(.5, kick + .18); });
+inp.addEventListener('focus', () => document.body.classList.add('typing'));
+inp.addEventListener('blur', () => document.body.classList.remove('typing'));
+inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && matchMedia('(hover:hover) and (pointer:fine)').matches) { e.preventDefault(); if (!$('send').disabled && !busy) $('send').click(); } });
+// A caixa só aceita texto: arquivos soltos ou colados nela viram anexo.
+inp.addEventListener('paste', e => { const fs = e.clipboardData && e.clipboardData.files; if (fs && fs.length) { e.preventDefault(); takeFiles(fs); } });
+
+function closePop() { $('attachPop').hidden = true; $('attach').setAttribute('aria-expanded', 'false'); }
+$('attach').onclick = e => { e.stopPropagation(); const p = $('attachPop'); p.hidden = !p.hidden; $('attach').setAttribute('aria-expanded', String(!p.hidden)); };
+document.addEventListener('click', e => { if (!e.target.closest('#attachPop') && !e.target.closest('#attach')) closePop(); });
+function pickAv(mode = '') { pickMode = mode; $('fAv').click(); }
+$('pickAv').onclick = () => { closePop(); pickMode = 'pend'; $('fAv').click(); };
+$('pickWa').onclick = () => { closePop(); pickMode = 'pend'; $('fWa').click(); };
+const isZip = f => /\.zip$/i.test(f.name) || /zip/i.test(f.type);
+// Vários .zip de uma vez viram várias conversas; qualquer outro arquivo usa só o primeiro.
+function takeFiles(list, mode = 'pend') {
+  const fs = [...list], zips = fs.filter(isZip);
+  const p = zips.length ? { kind: 'wa', files: zips.slice(0, MAX_CONVS) } : fs[0] ? { kind: 'av', files: [fs[0]] } : null;
+  if (!p) return;
+  if (mode === 'pend' || busy) { setPending(p); return; }
+  start(p, '', mode === 'sum' ? 'sum' : '');
+}
+$('fAv').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; const m = pickMode; pickMode = ''; if (fs.length) takeFiles(fs, m || 'go'); };
+$('fWa').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; const m = pickMode; pickMode = ''; if (fs.length) takeFiles(fs, m || 'go'); };
+// Arrastar arquivos para a janela (computador)
+let dragN = 0;
+addEventListener('dragenter', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { dragN++; document.body.classList.add('drag'); } });
+addEventListener('dragleave', () => { if (--dragN <= 0) { dragN = 0; document.body.classList.remove('drag'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); dragN = 0; document.body.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files.length) takeFiles(e.dataTransfer.files); });
+
+function attHTML(p) {
+  if (p.kind === 'wa') {
+    const n = p.files.length, size = p.files.reduce((a, f) => a + f.size, 0);
+    return `<div class="att"><span class="tile c-mint">${I('zip')}</span><span class="fb"><b>${esc(n > 1 ? `${n} conversas do WhatsApp` : p.files[0].name)}</b><small>${n > 1 ? 'Arquivos .zip · ' : 'Conversa do WhatsApp · '}${fmtSize(size)}</small></span></div>`;
+  }
+  const f = p.files[0], vid = /^video\//.test(f.type) || /\.(mp4|mov|webm|m4v|mkv|avi|3gp)$/i.test(f.name);
+  return `<div class="att"><span class="tile c-violet">${vid ? I('video') : EQ()}</span><span class="fb"><b>${esc(f.name)}</b><small>${vid ? 'Vídeo' : 'Áudio'} · ${fmtSize(f.size)}</small></span></div>`;
+}
+function setPending(p) {
+  pending = p; const box = $('pend'); box.hidden = false;
+  box.innerHTML = attHTML(p).replace(/<\/div>$/, `<button class="x press" id="unpend" aria-label="Remover anexo">${I('x', 'sm')}</button></div>`);
+  $('unpend').onclick = () => { pending = null; box.hidden = true; box.innerHTML = ''; sendState(); };
+  sendState(); compH();
+  if (matchMedia('(hover:hover) and (pointer:fine)').matches) inp.focus();
+}
+$('send').onclick = () => {
+  if (busy) { if (stopFn) stopFn(); return; }
+  const q = inp.value.trim();
+  if (pending) { const p = pending; pending = null; $('pend').hidden = true; $('pend').innerHTML = ''; inp.value = ''; grow(); start(p, q); return; }
+  if (q) { inp.value = ''; grow(); ask(q); }
+};
+
+/* ===================== peças das mensagens ===================== */
+function userMsg(text, p) {
+  clearHello();
+  const d = el('div', 'me', (p ? attHTML(p) : '') + (text ? '<div class="bub"></div>' : ''));
+  if (text) d.querySelector('.bub').textContent = text;
+  T.append(d); follow = true; toEnd(true); return d;
+}
+function aiMsg() { clearHello(); const d = el('div', 'ai msg', '<span class="orb-s"></span><div class="body"></div>'); T.append(d); toEnd(); return d.querySelector('.body'); }
+function thinkBlock(body, label) {
+  const t = el('div', 'tblock open', `<button class="think-h" aria-expanded="true"><span class="spin"></span><span class="lbl shim"></span><span class="tm">0s</span>${I('down', 'sm chev')}</button><div class="think-b"><div><div class="think-in"></div></div></div>`);
+  body.append(t);
+  const lbl = t.querySelector('.lbl'), head = t.querySelector('.think-h'); lbl.textContent = label;
+  head.onclick = () => { t.classList.toggle('open'); head.setAttribute('aria-expanded', t.classList.contains('open')); };
+  let s = 0; const clock = setInterval(() => { s++; const tm = t.querySelector('.tm'); if (tm) tm.textContent = s < 60 ? s + 's' : Math.floor(s / 60) + 'min ' + (s % 60) + 's'; }, 1000);
+  const end = (txt, ok) => {
+    clearInterval(clock);
+    const sp = t.querySelector('.spin'); if (sp) sp.outerHTML = ok ? `<span class="donei">${I('checkc')}</span>` : `<span class="badi">${I('alert')}</span>`;
+    lbl.classList.remove('shim'); lbl.textContent = txt;
+    const tm = t.querySelector('.tm'); if (tm) tm.textContent = s < 60 ? s + 's' : Math.floor(s / 60) + 'min';
+    if (!ok) t.classList.add('bad');
+    setTimeout(() => { t.classList.remove('open'); head.setAttribute('aria-expanded', 'false'); }, reduce ? 0 : 600);
+  };
+  return { el: t, inner: t.querySelector('.think-in'), label: x => { lbl.textContent = x; }, done: x => end(x, true), fail: x => end(x, false) };
+}
+function makeSteps(inner) {
+  const w = el('div', 'steps'); inner.append(w);
+  return (list, k) => {
+    w.innerHTML = list.map(([name, right], i) => {
+      const st = i < k ? 'ok' : i === k ? 'run' : 'wait';
+      const ic = st === 'ok' ? `<span class="donei">${I('checkc', 'sm')}</span>` : st === 'run' ? '<span class="spin" style="width:16px;height:16px"></span>' : I('circle', 'sm');
+      return `<div class="step ${st}"><span class="ic">${ic}</span><span>${esc(name)}</span><span class="r">${st === 'ok' ? 'pronto' : esc(right || '')}</span></div>`;
+    }).join('');
+  };
+}
+function liveWave(inner) {
+  const l = el('div', 'live'); for (let i = 0; i < 40; i++) l.append(document.createElement('i')); inner.append(l);
+  let ph = 0, timer = 0;
+  if (!reduce) timer = setInterval(() => { ph += .35; const b = l.children, n = b.length; for (let i = 0; i < n; i++) { const c = Math.abs(i - n / 2) / (n / 2); b[i].style.height = Math.max(10, (.25 + .75 * Math.random()) * (1 - c * .7) * (.6 + .4 * Math.sin(ph + i * .45)) * 100) + '%'; } }, 110);
+  return { stop: () => { clearInterval(timer); l.remove(); } };
+}
+function track(inner) { const t = el('div', 'track', '<i></i>'); inner.append(t); return p => { t.firstChild.style.width = Math.max(0, Math.min(100, p)) + '%'; }; }
+function readingLines(inner) {
+  const W = [88, 64, 76, 92, 58, 82, 70];
+  const lines = el('div', 'lines', W.map(w => `<div class="ln"><span class="a"></span><span class="t" style="width:${w}%"></span></div>`).join('') + '<div class="scan"></div>');
+  inner.append(lines);
+  const L = lines.querySelectorAll('.ln'); let n = 0;
+  const timer = reduce ? 0 : setInterval(() => { L.forEach(l => l.classList.remove('hit')); L[(n * 3) % 7].classList.add('hit'); L[(n * 5 + 2) % 7].classList.add('hit'); n++; }, 240);
+  return () => clearInterval(timer);
+}
+const keepNote = inner => inner.append(el('p', 'keep', `${I('clock', 'sm')}Mantenha esta tela aberta até terminar.`));
+
+// Mostra texto com títulos, listas e negrito simples, sem aceitar HTML.
+function rich(box, text) {
+  box.textContent = '';
+  const inline = (parent, s) => s.split(/(\*\*[^*]+\*\*)/).forEach(part => {
+    if (/^\*\*[^*]+\*\*$/.test(part)) { const b = document.createElement('strong'); b.textContent = part.slice(2, -2); parent.append(b); }
+    else if (part) parent.append(part);
+  });
+  let list = null, kind = '';
+  for (const line of String(text).split('\n')) {
+    const t = line.trimEnd(); let m;
+    if (!t.trim()) { list = null; continue; }
+    if ((m = t.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/))) {
+      const k = /\d/.test(m[1]) ? 'ol' : 'ul';
+      if (!list || kind !== k) { list = document.createElement(k); kind = k; box.append(list); }
+      const li = document.createElement('li'); inline(li, m[2]); list.append(li); continue;
+    }
+    list = null;
+    if ((m = t.match(/^#{1,6}\s+(.*)$/))) { const h = document.createElement('h4'); inline(h, m[1]); box.append(h); continue; }
+    const p = document.createElement('p'); inline(p, t.trim()); box.append(p);
   }
 }
+// Os blocos aparecem um a um (resumos, respostas e o passo a passo).
+async function reveal(box, text) {
+  const tmp = document.createElement('div'); rich(tmp, text);
+  const kids = [...tmp.children];
+  for (let i = 0; i < kids.length; i++) { kids[i].classList.add('blk'); box.append(kids[i]); toEnd(); if (i < 24) await wait(90); }
+}
+// Texto transcrito: o começo chega palavra por palavra; o resto aparece de uma vez.
+async function typeText(box, text) {
+  const paras = String(text).split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+  let budget = reduce ? 0 : 90;
+  for (const para of paras) {
+    const p = document.createElement('p'); box.append(p);
+    if (budget <= 0) { p.textContent = para; continue; }
+    const ws = para.split(/\s+/), car = el('span', 'caret'); p.append(car);
+    for (let k = 0; k < ws.length; k++) {
+      if (budget-- <= 0) { car.before(ws.slice(k).join(' ')); break; }
+      const s = el('span', 'wd'); s.textContent = ws[k] + ' '; car.before(s);
+      if (k % 2) await wait(28);
+    }
+    car.remove();
+  }
+}
+function actsRow(body, items, meta) {
+  const a = el('div', 'acts');
+  for (const it of items) {
+    const b = el('button', 'act press', `${I(it.icon, 'sm')}<span>${esc(it.label)}</span>`);
+    b.type = 'button';
+    b.onclick = async () => {
+      const r = await it.run();
+      if (it.copy) { b.classList.add('ok'); b.innerHTML = `${I('check', 'sm')}<span>${r === false ? 'Não deu' : 'Copiado'}</span>`; setTimeout(() => { b.classList.remove('ok'); b.innerHTML = `${I(it.icon, 'sm')}<span>${esc(it.label)}</span>`; }, 1800); }
+    };
+    a.append(b);
+  }
+  if (meta) a.append(el('span', 'meta', esc(meta)));
+  body.append(a); return a;
+}
+function follows(body, list) {
+  const f = el('div', 'follow');
+  for (const [icon, label, run] of list) {
+    const b = el('button', 'chip press', `${I(icon, 'sm')}${esc(label)}`); b.type = 'button';
+    b.onclick = () => { if (busy) { toast('Espere o Reo terminar'); return; } f.remove(); run(); };
+    f.append(b);
+  }
+  body.append(f); toEnd(); return f;
+}
+function errorBox(body, msg, buttons = []) {
+  const box = el('div', 'errbox'); box.textContent = msg; body.append(box);
+  if (buttons.length) {
+    const row = el('div', 'erow');
+    for (const [label, icon, run, pri] of buttons) {
+      const b = el('button', 'btn press ' + (pri ? 'pri' : 'sec'), `${I(icon, 'sm')}<span>${esc(label)}</span>`); b.type = 'button';
+      b.onclick = () => { if (busy) { toast('Espere o Reo terminar'); return; } if (pri) row.remove(); run(); };
+      row.append(b);
+    }
+    body.append(row);
+  }
+  toEnd(); return box;
+}
+const limitButtons = e => e instanceof LimitError ? [['Tenho um código de liberação', 'key', () => openDrawer(true)]] : [];
 
-$('go').onclick = async () => {
-  $('go').disabled = true; label(WORK); $('result').hidden = true; busy(true);
+/* ===================== estado da conversa ===================== */
+let ctx = null;            // { kind:'av', text, name, segs } ou { kind:'wa' }
+let wa = null;             // conversa(s) do WhatsApp abertas
+let waFile = null;
+const reoHistory = [];
+const MAX_CONVS = 10;
+const REO_LIMIT_CHARS = 3_000_000;   // mesmo limite do servidor
+let sessionId = '';
+try { sessionId = sessionStorage.getItem('transcriby_sessao') || ''; } catch (_) {}
+if (!sessionId) {
+  sessionId = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  try { sessionStorage.setItem('transcriby_sessao', sessionId); } catch (_) {}
+}
+function closeWa() { if (wa) wa.convs.forEach(c => c.zip.close().catch(() => {})); wa = null; waFile = null; }
+function newChat() {
+  if (busy) { toast(stopFn ? 'Toque em Parar antes de começar outra' : 'Espere o Reo terminar'); return; }
+  closeWa(); ctx = null; reoHistory.length = 0; pending = null; $('pend').hidden = true; $('pend').innerHTML = '';
+  inp.value = ''; grow(); closeSheet(true); hello(); scrollTo(0, 0);
+}
+$('newChat').onclick = newChat;
+function start(p, question, then) {
+  if (busy) { setPending(p); return; }
+  if (p.kind === 'wa') startWA(p, question); else startAV(p, question, then);
+}
+
+/* ===================== áudio ou vídeo ===================== */
+async function startAV(p, question, then) {
+  const file = p.files[0]; curSize = file.size;
+  userMsg(question, p);
+  return runAV(file, question, then);
+}
+async function runAV(file, question, then) {
+  const body = aiMsg();
+  const th = thinkBlock(body, 'Lendo o áudio do arquivo');
+  const wave = liveWave(th.inner), bar = track(th.inner), paint = makeSteps(th.inner);
+  keepNote(th.inner);
+  let parts = [['Lendo o áudio do arquivo', '0%']];
+  paint(parts, 0); setBusy(true);
+  const name = file.name.replace(/\.[^.]+$/, '') || 'transcricao';
+  let audio;
   try {
     if (!GEMINI_URL) throw new Error('o servidor de transcrição não está configurado');
-    setP(1, 'Lendo o áudio do arquivo…'); mark('lendo o áudio do arquivo');
-    const audio = await decodeToMono16k(file, f => setP(1 + Math.round(f * 8), `Lendo o áudio do arquivo… ${Math.round(f * 100)}%`));
-    return runReo(audio, file.name.replace(/\.[^.]+$/, '') || 'transcricao');
+    mark('lendo o áudio do arquivo');
+    audio = await decodeToMono16k(file, f => { bar(1 + f * 8); parts[0][1] = Math.round(f * 100) + '%'; paint(parts, 0); });
   } catch (e) {
-    fail('Não consegui ler esse arquivo (' + (e.message || e) + '). Seu arquivo continua escolhido: aperte "Tentar de novo" ou escolha outro.');
+    unmark(); wave.stop(); setBusy(false); th.fail('Não consegui ler o arquivo');
+    errorBox(body, 'Não consegui ler esse arquivo (' + (e.message || e) + '). Tente de novo ou escolha outro.', [['Tentar de novo', 'refresh', () => runAV(file, question, then), true], ['Escolher outro', 'file', () => pickAv()]]);
+    return;
   }
-};
-
-// Resumo do texto já transcrito (o servidor usa a mesma chave; só roda quando a pessoa pede).
-function resetSummary() {
-  if (sumUrl) URL.revokeObjectURL(sumUrl); sumUrl = '';
-  $('sumBox').hidden = true; $('sumOut').value = ''; $('sumMsg').textContent = ''; $('sumMsg').classList.remove('err');
-  $('sumGo').disabled = false; $('sumGo').textContent = 'Gerar resumo';
-}
-$('sumGo').onclick = async () => {
-  const btn = $('sumGo'), msg = $('sumMsg');
-  btn.disabled = true; btn.textContent = 'Gerando resumo…'; $('sumBox').hidden = true;
-  msg.classList.remove('err'); msg.textContent = 'O Reo está lendo o texto todo. Textos longos levam um pouco mais.';
+  let segs;
   try {
-    const summary = await withKey(key => summarize(text, { url: GEMINI_URL, language: $('lang').value, size: $('sumSize').value, key }));
-    if (!summary) throw new Error('o resumo veio vazio');
-    msg.textContent = '';
-    if (sumUrl) URL.revokeObjectURL(sumUrl);
-    sumUrl = blobUrl(summary + '\n', 'text/plain');
-    $('sumOut').value = summary; $('sumDl').href = sumUrl; $('sumDl').download = baseName + '-resumo.txt';
-    $('sumCopy').textContent = 'Copiar resumo'; $('sumBox').hidden = false;
-    btn.textContent = 'Gerar de novo';
+    const onProgress = (i, n) => {
+      bar(10 + 85 * i / n);
+      if (parts.length !== n + 1) { parts = [['Lendo o áudio do arquivo', '']]; for (let k = 0; k < n; k++) parts.push([n === 1 ? 'Transcrevendo com o Reo' : `Parte ${k + 1} de ${n}`, '']); }
+      paint(parts, i + 1);
+      th.label(i >= n ? 'Juntando o texto' : n === 1 ? 'Ouvindo e transcrevendo' : `Ouvindo a parte ${Math.min(i + 1, n)} de ${n}`);
+      mark('transcrevendo com o Reo');
+    };
+    segs = await withKey(key => transcribeWithGemini(audio, { url: GEMINI_URL, language: lang, key, onProgress }));
   } catch (e) {
-    msg.classList.add('err'); msg.textContent = 'Não consegui gerar o resumo: ' + (e.message || e) + '.';
-    btn.textContent = RETRY;
+    unmark(); wave.stop(); setBusy(false); th.fail('A transcrição parou');
+    errorBox(body, e instanceof LimitError ? e.message + '.' : 'Erro ao transcrever: ' + (e.message || e) + '. Seu arquivo continua aqui: toque em "Tentar de novo".',
+      [['Tentar de novo', 'refresh', () => runAV(file, question, then), true], ...limitButtons(e)]);
+    return;
   }
-  btn.disabled = false;
-};
-$('sumCopy').onclick = () => copyFrom($('sumOut'), $('sumCopy'), 'Copiar resumo');
+  unmark(); wave.stop(); bar(100);
+  if (!segs.length) {
+    th.done('Áudio lido'); setBusy(false);
+    const box = el('div', 'txt'); body.append(box); await reveal(box, 'Não encontrei nenhuma fala nesse arquivo. Confira se o áudio tem alguém falando e se o volume não está muito baixo.');
+    return;
+  }
+  th.done('Áudio transcrito');
+  const text = toPrettyText(segs);
+  ctx = { kind: 'av', text, name, segs }; reoHistory.length = 0; closeWa();
+  await showTranscript(body, text, name, segs);
+  setBusy(false);
+  if (then === 'sum') return runSummary('completo');
+  if (question) return ask(question);
+}
+async function showTranscript(body, text, name, segs) {
+  const words = (text.match(/\S+/g) || []).length;
+  const head = el('div', 'doc-h', `<span class="tile c-violet">${I('file')}</span><b>Texto pronto</b><span class="meta">${plural(words, 'palavra', 'palavras')}</span>`);
+  const doc = el('div', 'doc'), box = el('div', 'txt'); doc.append(box);
+  doc.setAttribute('tabindex', '0'); doc.setAttribute('aria-label', 'Texto transcrito');
+  body.append(head, doc); toEnd();
+  await typeText(box, text);
+  actsRow(body, [
+    { icon: 'copy', label: 'Copiar texto', copy: true, run: () => copyText(text) },
+    { icon: 'dl', label: 'Baixar TXT', run: () => downloadText(name + '.txt', text, 'text/plain') },
+    { icon: 'cc', label: 'Baixar SRT com tempo', run: () => downloadText(name + '.srt', toSrt(segs), 'application/x-subrip') },
+  ]);
+  follows(body, [
+    ['spark', 'Resumo completo, por assunto', () => runSummary('completo')],
+    ['list', 'Resumo curto', () => runSummary('curto')],
+    ['tag', 'Quais são os assuntos?', () => ask('Quais assuntos foram tratados? Liste em ordem.')],
+  ]);
+}
 
-// ===================== Conversa do WhatsApp (.zip) =====================
-const REO_LIMIT_CHARS = 3_000_000;   // mesmo limite do servidor
-let wa = null;       // { convs: [{ zip, parsed, messages, name, file }], parsed (somado), messages (todas), name, measured }
-const MAX_CONVS = 10;
+/* ===================== resumo ===================== */
+async function runSummary(size) {
+  if (!ctx || ctx.kind !== 'av') return;
+  const my = ctx;
+  userMsg(size === 'curto' ? 'Faça um resumo curto, só o essencial.' : 'Faça um resumo completo, por assunto.');
+  const body = aiMsg(), th = thinkBlock(body, 'Lendo o texto todo'), stopLines = readingLines(th.inner);
+  th.inner.append(el('p', 'keep', `${I('clock', 'sm')}Textos longos levam um pouco mais.`));
+  setBusy(true);
+  try {
+    const summary = await withKey(key => summarize(my.text, { url: GEMINI_URL, language: lang, size, key }));
+    if (!summary) throw new Error('o resumo veio vazio');
+    stopLines(); th.done('Texto lido');
+    const box = el('div', 'txt'); body.append(box); await reveal(box, summary);
+    const file = my.name + '-resumo.txt';
+    actsRow(body, [
+      { icon: 'copy', label: 'Copiar resumo', copy: true, run: () => copyText(summary) },
+      { icon: 'dl', label: 'Baixar resumo (TXT)', run: () => downloadText(file, summary + '\n', 'text/plain') },
+    ]);
+    setBusy(false);
+    if (ctx === my) follows(body, size === 'curto' ? [['spark', 'Resumo completo, por assunto', () => runSummary('completo')]] : [['list', 'Resumo curto', () => runSummary('curto')]]);
+  } catch (e) {
+    stopLines(); th.fail('Não consegui resumir'); setBusy(false);
+    errorBox(body, (e instanceof LimitError ? e.message : 'Não consegui gerar o resumo: ' + (e.message || e)) + '.', [['Tentar de novo', 'refresh', () => runSummary(size), true], ...limitButtons(e)]);
+  }
+}
+
+/* ===================== perguntas ao Reo ===================== */
+async function localReply(text) { const body = aiMsg(); const box = el('div', 'txt'); body.append(box); await reveal(box, text); return body; }
+async function ask(q) {
+  q = q.trim(); if (!q) return;
+  if (!ctx && wa && !wa.ready) { userMsg(q); return localReply('Antes de perguntar, toque em **Processar conversa** no cartão acima. Assim eu leio os áudios, vídeos e fotos junto com as mensagens.'); }
+  if (!ctx) { userMsg(q); return localReply('Para eu responder, primeiro me mande um **áudio**, um **vídeo** ou a **conversa do WhatsApp**: toque no **+** aqui embaixo. Depois é só perguntar o que quiser sobre ele.'); }
+  const my = ctx;
+  const transcript = my.kind === 'wa' ? toTranscript(wa.messages) : `=== Transcrição de áudio/vídeo: ${my.name} ===\n${my.text}`;
+  userMsg(q);
+  const body = aiMsg();
+  if (transcript.length > REO_LIMIT_CHARS) { errorBox(body, my.kind === 'wa' ? 'Esta conversa é grande demais para o chat do Reo. Use os filtros e o .md exportado, ou envie um período menor.' : 'Este texto é grande demais para o chat do Reo.'); return; }
+  const th = thinkBlock(body, my.kind === 'wa' ? 'Relendo a conversa' : 'Relendo o texto'), stopLines = readingLines(th.inner);
+  setBusy(true);
+  let box = null, caret = null;
+  try {
+    const reply = await withKey(key => askReo({ message: q, history: reoHistory.slice(-16), transcript }, {
+      url: GEMINI_URL, key, session: sessionId,
+      onText: t => {   // a resposta aparece aos poucos
+        if (!t) return;
+        if (!box) { stopLines(); th.done(my.kind === 'wa' ? 'Conversa relida' : 'Texto relido'); box = el('div', 'txt blk'); body.append(box); caret = el('span', 'caret'); }
+        rich(box, t); (box.lastElementChild || box).append(caret); toEnd();
+      },
+    }));
+    const out = reply || 'Não consegui responder agora. Tente reformular a pergunta.';
+    if (!box) { stopLines(); th.done(my.kind === 'wa' ? 'Conversa relida' : 'Texto relido'); box = el('div', 'txt'); body.append(box); }
+    rich(box, out);
+    if (ctx === my) reoHistory.push({ role: 'user', text: q }, { role: 'model', text: out });
+    const base = (my.kind === 'wa' ? (waFile && waFile.name ? waFile.name : 'conversa') : my.name).replace(/\.[^.]+$/, '');
+    const items = [{ icon: 'copy', label: 'Copiar', copy: true, run: () => copyText(out) }];
+    if (/resum/i.test(q) || out.length >= 600) items.push({ icon: 'md', label: 'Baixar .md', run: () => downloadText(`reo-${/resum/i.test(q) ? 'resumo' : 'resposta'}-${base}.md`, `# Reo: ${base}\n\n${out}\n`, 'text/markdown') });
+    actsRow(body, items);
+  } catch (e) {
+    stopLines(); if (caret) caret.remove();
+    if (!box) th.fail('Não consegui responder');
+    errorBox(body, 'Não consegui responder: ' + (e.message || e) + (/[.!?]$/.test(String(e.message || e)) ? '' : '.'), limitButtons(e));
+  }
+  if (caret) caret.remove();
+  setBusy(false);
+}
+
+/* ===================== como exportar do WhatsApp (sem servidor) ===================== */
+function howTo() {
+  userMsg('Como exporto uma conversa do WhatsApp?');
+  localReply(`#### No iPhone
+1. Abra a conversa no WhatsApp e toque no **nome** da pessoa ou do grupo, lá em cima.
+2. Role até o fim e toque em **Exportar conversa**.
+3. Escolha **Anexar mídia** para eu poder ouvir os áudios e ver as fotos.
+4. Toque em **Salvar em Arquivos**.
+#### No Android
+1. Abra a conversa, toque nos **três pontinhos** e depois em **Mais**.
+2. Toque em **Exportar conversa** e escolha **Incluir mídia**.
+3. Salve o arquivo .zip no celular.
+Depois é só tocar no **+** aqui embaixo, escolher **Conversa do WhatsApp** e mandar o .zip. Pode mandar várias conversas de uma vez.`).then(body => follows(body, [['chat', 'Mandar a conversa agora', () => $('fWa').click()]]));
+}
+
+/* ===================== conversa do WhatsApp (.zip) ===================== */
 let ctl = { stop: false };
-let waShown = [], waLimit = 300, reoBusy = false;
-const reoHistory = [];
-const wset = (p, m, err) => {
-  $('waFill').style.width = p + '%'; $('waTrack').setAttribute('aria-valuenow', Math.round(p));
-  $('waMsg').textContent = m; $('waMsg').classList.toggle('err', !!err);
-};
-const showWa = on => { $('home').hidden = on; $('wa').hidden = !on; window.scrollTo(0, 0); };
-$('zipBtn').onclick = () => $('zipFile').click();
-$('zipFile').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; fs.length && openWa(fs); };
-$('waBack').onclick = () => {
-  ctl.stop = true; busy(false);
-  closeWa();
-  wa = null; waFile = null; unmark(); showWa(false);
-};
-
-function closeWa() { if (wa) wa.convs.forEach(c => c.zip.close().catch(() => {})); }
+let waShown = [], waLimit = 300;
+const waFilters = { conv: '', sender: '', from: '', to: '', q: '' };
+const AVC = ['#3D63FF', '#7B4DFF', '#F0438C', '#E5851C', '#10A98F', '#0EA5E9', '#9333EA'];
+const avColor = s => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AVC[h % AVC.length]; };
+const initials = s => String(s).trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+const KIND_ICON = { texto: 'chat', audio: 'mic', video: 'video', imagem: 'image', documento: 'file', figurinha: 'image', contato: 'user', outro: 'file', sistema: 'help' };
 
 // Junta as conversas num só objeto (contagens somadas, período total, mensagens uma conversa depois da outra).
 function mergeConvs(convs) {
@@ -639,29 +1118,30 @@ function mergeConvs(convs) {
     senders: [...new Set(convs.flatMap(c => c.parsed.senders))],
     firstDate: dates.map(p => p.firstDate).sort()[0] || '', lastDate: dates.map(p => p.lastDate).sort().pop() || '',
   };
-  return { convs, parsed, messages: parsed.messages, name: convs.length === 1 ? convs[0].name : 'conversas', measured: null };
+  return { convs, parsed, messages: parsed.messages, name: convs.length === 1 ? convs[0].name : 'conversas', measured: null, ready: false };
 }
 
-async function openWa(files) {
-  files = [...files].slice(0, MAX_CONVS);
-  closeWa(); wa = null; ctl = { stop: false }; reoHistory.length = 0;
-  const many = files.length > 1;
+async function startWA(p, question) {
+  const files = p.files.slice(0, MAX_CONVS), many = files.length > 1;
+  closeWa(); ctx = null; reoHistory.length = 0; ctl = { stop: false };
   waFile = many ? { name: `${files.length} conversas`, size: files.reduce((a, f) => a + f.size, 0) } : files[0];
-  showWa(true);
-  $('waFile').textContent = many ? `${files.length} conversas · ${fmtSize(waFile.size)}` : files[0].name + ' · ' + fmtSize(files[0].size);
-  $('waStats').innerHTML = ''; $('waPeople').textContent = ''; $('waAudio').textContent = ''; $('waWarn').textContent = '';
-  $('waResult').hidden = true; $('reo').hidden = true; $('reoLog').innerHTML = '';
-  $('waGo').disabled = true; $('waGo').hidden = false; $('waGo').textContent = 'Processar conversa'; $('waStop').hidden = true;
-  busy(true);
+  curSize = waFile.size;
+  userMsg(question, p);
+  const body = aiMsg();
+  const th = thinkBlock(body, many ? `Abrindo ${files.length} conversas` : 'Abrindo a conversa');
+  const bar = track(th.inner), paint = makeSteps(th.inner);
+  const st = [[many ? 'Abrindo os arquivos .zip' : 'Abrindo o .zip', ''], ['Lendo as mensagens', ''], ['Medindo o tempo de áudio', '']];
+  paint(st, 0); setBusy(true);
   const convs = [], skipped = [], used = new Set();
   let firstErr = null;
   try {
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      wset(2 + 3 * i / files.length, many ? `Abrindo o .zip ${i + 1} de ${files.length}…` : 'Abrindo o .zip…'); mark('abrindo o zip');
+      bar(2 + 8 * i / files.length); st[0][1] = many ? `${i + 1} de ${files.length}` : ''; paint(st, 0); mark('abrindo o zip');
       let zip = null;
       try {
         zip = await openChatZip(f);
+        paint(st, 1);
         const parsed = parseChat(zip.text, zip.paths);
         if (!parsed.messages.length) throw new Error('não reconheci nenhuma mensagem no arquivo de texto (o formato da conversa é diferente do esperado)');
         let name = f.name.replace(/\.zip$/i, '') || 'conversa', n = 2;
@@ -676,252 +1156,201 @@ async function openWa(files) {
     }
     if (!convs.length) throw many ? new Error('nenhum dos arquivos pôde ser lido: ' + skipped.join('; ')) : firstErr;
     wa = mergeConvs(convs);
-    renderWaSummary();
+    st[1][1] = plural(wa.messages.length, 'mensagem', 'mensagens'); paint(st, 2);
     let totalSec = 0, estimated = false;
     for (let ci = 0; ci < convs.length; ci++) {
-      wset(5, 'Medindo o tempo de áudio…'); mark('medindo o áudio');
-      const m = await measureAudio(convs[ci].zip, convs[ci].messages, (i, n) => wset(5 + Math.round(20 * (ci + i / Math.max(n, 1)) / convs.length), `Medindo o tempo de áudio… ${many ? `conversa ${ci + 1} de ${convs.length}, ` : ''}${i} de ${n}`));
+      mark('medindo o áudio');
+      const m = await measureAudio(convs[ci].zip, convs[ci].messages, (i, n) => { bar(10 + 85 * (ci + i / Math.max(n, 1)) / convs.length); st[2][1] = `${i} de ${n}`; paint(st, 2); });
       totalSec += m.totalSec; estimated = estimated || m.estimated;
     }
-    wa.measured = { totalSec, estimated }; unmark();
-    const limitSec = MAX_AUDIO_HOURS * 3600, warns = [];
-    if (skipped.length) warns.push(`Não consegui abrir: ${skipped.join('; ')}.`);
-    $('waAudio').innerHTML = '';
-    const strong = document.createElement('strong'); strong.textContent = fmtDuration(totalSec);
-    $('waAudio').append('Áudio a transcrever (áudios + fala dos vídeos): ', strong, (estimated ? ' (estimado)' : '') + `. Limite por envio: ${MAX_AUDIO_HOURS} h${many ? ' somando as conversas' : ''}.`);
-    busy(false); wset(0, '');
-    if (totalSec > limitSec) {
-      warns.push(`${many ? 'Estas conversas têm' : 'Esta conversa tem'} ${fmtDuration(totalSec)} de áudio, acima do limite de ${MAX_AUDIO_HOURS} h por envio. Nada foi processado. ${many ? 'Envie menos conversas ou exporte um período menor' : 'Exporte a conversa de um período menor'} e envie de novo.`);
-      $('waWarn').textContent = warns.join(' ');
-      $('waGo').hidden = true;
-      return;
-    }
-    // Limite diário: avisa se o que falta processar não cabe no que resta hoje (processa até o limite e o resto fica para amanhã).
-    const q = await refreshUsage();
-    if (q && !q.unlimited) {
-      const need = totalSec / 60 + 0.2 * wa.messages.filter(m => m.kind === 'imagem' && m.file && m.status === 'pending').length;
-      if (need > q.remaining) warns.push(`Isso usa cerca de ${fmtMin(need)} min e hoje ainda restam ${fmtMin(q.remaining)}. O Transcriby processa até o limite; o que faltar fica pendente e você continua amanhã (ou com um código de liberação).`);
-    }
-    $('waWarn').textContent = warns.join(' ');
-    const todo = wa.messages.filter(x => x.status === 'pending').length;
-    if (!todo) { renderWaResult(true); $('waGo').hidden = true; return; }
-    $('waGo').disabled = false;
+    wa.measured = { totalSec, estimated }; unmark(); bar(100);
+    th.done(many ? `${convs.length} conversas abertas` : 'Conversa aberta');
+    setBusy(false);
+    await waCard(body, { many, skipped, question });
   } catch (e) {
-    unmark(); busy(false); convs.forEach(c => c.zip.close().catch(() => {})); wa = null;
-    wset(0, 'Não consegui abrir a conversa: ' + (e.message || e) + '.', true);
+    unmark(); convs.forEach(c => c.zip.close().catch(() => {})); wa = null; setBusy(false);
+    th.fail('Não consegui abrir a conversa');
+    errorBox(body, 'Não consegui abrir a conversa: ' + (e.message || e) + '.', [['Escolher outro arquivo', 'zip', () => $('fWa').click(), true], ['Como exportar?', 'help', howTo]]);
   }
 }
 
-function renderWaSummary() {
-  const { parsed } = wa, c = parsed.counts, li = t => { const x = document.createElement('li'); x.textContent = t; $('waStats').append(x); };
-  const n = (k, one, many) => c[k] ? li(`${c[k].toLocaleString('pt-BR')} ${c[k] === 1 ? one : many}`) : 0;
-  if (wa.convs.length > 1) li(`${wa.convs.length} conversas`);
-  li(`${parsed.messages.length.toLocaleString('pt-BR')} ${parsed.messages.length === 1 ? 'mensagem' : 'mensagens'}`);
-  n('audio', 'áudio', 'áudios'); n('video', 'vídeo', 'vídeos'); n('imagem', 'imagem', 'imagens');
-  const other = c.documento + c.figurinha + c.contato + c.outro;
-  if (other) li(`${other.toLocaleString('pt-BR')} outros anexos`);
+async function waCard(body, { many, skipped, question }) {
+  const my = wa, { parsed } = my, c = parsed.counts, totalSec = my.measured.totalSec;
+  const stat = (icon, n, label) => n ? `<div class="stat">${I(icon)}<b>${n.toLocaleString('pt-BR')}</b><small>${label}</small></div>` : '';
+  const other = (c.documento || 0) + (c.figurinha || 0) + (c.contato || 0) + (c.outro || 0);
   const who = parsed.senders;
-  $('waPeople').textContent = (who.length ? `Participantes: ${who.slice(0, 8).join(', ')}${who.length > 8 ? ` e mais ${who.length - 8}` : ''}. ` : '') +
-    (parsed.firstDate ? `Período: ${brDate(parsed.firstDate)} a ${brDate(parsed.lastDate)}.` : '');
+  const card = el('div', 'card msg', `
+    <div class="row"><span class="tile c-mint">${I('zip')}</span><span><b>${esc(many ? `${my.convs.length} conversas do WhatsApp` : 'Conversa do WhatsApp')}</b><small>${esc(many ? my.convs.map(x => x.name).join(', ') : waFile.name)} · ${fmtSize(waFile.size)}</small></span></div>
+    <div class="stats">${stat('chat', parsed.messages.length, parsed.messages.length === 1 ? 'mensagem' : 'mensagens')}${stat('mic', c.audio, c.audio === 1 ? 'áudio' : 'áudios')}${stat('video', c.video, c.video === 1 ? 'vídeo' : 'vídeos')}${stat('image', c.imagem, c.imagem === 1 ? 'imagem' : 'imagens')}${stat('file', other, 'outros')}</div>
+    <div class="row"><span class="avs">${who.slice(0, 4).map(n => `<span style="background:${avColor(n)}">${esc(initials(n))}</span>`).join('')}</span><span><small data-r="people"></small></span></div>
+    <p class="line" data-r="audio"></p>
+    <div class="warnbox" data-r="warn" hidden></div>
+    <div class="langrow">${I('globe', 'sm')}<span>Idioma dos áudios: <b data-r="lang"></b></span><button type="button" data-r="chlang">Trocar</button></div>
+    <div class="infobox" data-r="info">Áudios, o áudio dos vídeos e as fotos são enviados para serem transcritos e descritos. Vídeos não são enviados: só a fala deles. As mensagens de texto só saem deste aparelho se você conversar com o Reo.</div>
+    <div data-r="prog" hidden style="display:flex;flex-direction:column;gap:8px"><div class="track"><i data-r="bar"></i></div><p class="line" data-r="msg" role="status"></p><p class="keep">${I('clock', 'sm')}Mantenha esta tela aberta até terminar.</p></div>
+    <div class="errbox" data-r="err" hidden></div>
+    <div class="btns" data-r="go"><button type="button" class="btn pri full press" data-r="run">${I('spark', 'sm')}<span>Processar conversa</span></button></div>
+    <div class="btns" data-r="stopRow" hidden><button type="button" class="btn sec full press" data-r="stop"><span>Parar</span></button></div>
+    <div data-r="done" hidden style="display:flex;flex-direction:column;gap:12px">
+      <p class="line" data-r="count"></p>
+      <div class="btns"><button type="button" class="btn pri full press" data-r="view">${I('eye', 'sm')}<span>Ver conversa organizada</span></button>
+      <button type="button" class="btn sec press" data-r="copy">${I('copy', 'sm')}<span>Copiar</span></button>
+      <button type="button" class="btn sec press" data-r="md">${I('md', 'sm')}<span>Exportar .md</span></button></div>
+      <div class="warnbox" data-r="fail" hidden></div>
+      <div class="btns" data-r="retryRow" hidden><button type="button" class="btn sec full press" data-r="retry">${I('refresh', 'sm')}<span>Tentar de novo os que falharam</span></button></div>
+    </div>`);
+  body.append(card); toEnd();
+  const R = k => card.querySelector(`[data-r="${k}"]`);
+  R('people').textContent = (who.length ? `${who.slice(0, 8).join(', ')}${who.length > 8 ? ` e mais ${who.length - 8}` : ''}` : '') +
+    (parsed.firstDate ? `${who.length ? ' · ' : ''}${brDate(parsed.firstDate)} a ${brDate(parsed.lastDate)}` : '');
+  const strong = document.createElement('strong'); strong.textContent = fmtDuration(totalSec);
+  R('audio').append('Áudio a transcrever (áudios + fala dos vídeos): ', strong, (my.measured.estimated ? ' (estimado)' : '') + `. Limite por envio: ${MAX_AUDIO_HOURS} h${many ? ' somando as conversas' : ''}.`);
+  const setLang = () => { R('lang').textContent = langName(lang); };
+  setLang(); R('chlang').onclick = () => langSheet(setLang);
+  R('copy').onclick = async () => { const ok = await copyText(toTranscript(my.messages)); toast(ok ? 'Texto copiado' : 'Não consegui copiar'); };
+  R('md').onclick = () => downloadText(my.name + '.md', toMarkdown(my.messages, { fileName: waFile.name, total: my.messages.length, filters: {}, senders: my.parsed.senders }), 'text/markdown');
+  R('view').onclick = () => openConv(my);
+  R('run').onclick = () => runWa(card, R, my);
+  R('retry').onclick = () => runWa(card, R, my);
+  R('stop').onclick = () => stopWa(R);
+  const warns = [];
+  if (skipped.length) warns.push(`Não consegui abrir: ${skipped.join('; ')}.`);
+  if (totalSec > MAX_AUDIO_HOURS * 3600) {
+    warns.push(`${many ? 'Estas conversas têm' : 'Esta conversa tem'} ${fmtDuration(totalSec)} de áudio, acima do limite de ${MAX_AUDIO_HOURS} h por envio. Nada foi processado. ${many ? 'Envie menos conversas ou exporte um período menor' : 'Exporte a conversa de um período menor'} e envie de novo.`);
+    R('warn').textContent = warns.join(' '); R('warn').hidden = false; R('go').hidden = true; R('info').hidden = true; card.querySelector('.langrow').hidden = true;
+    return;
+  }
+  // Limite diário: avisa se o que falta processar não cabe no que resta hoje (processa até o limite e o resto fica para amanhã).
+  const q = await refreshUsage();
+  if (q && !q.unlimited) {
+    const need = totalSec / 60 + 0.2 * my.messages.filter(m => m.kind === 'imagem' && m.file && m.status === 'pending').length;
+    if (need > q.remaining) warns.push(`Isso usa cerca de ${fmtMin(need)} min e hoje ainda restam ${fmtMin(q.remaining)}. O Transcriby processa até o limite; o que faltar fica pendente e você continua amanhã (ou com um código de liberação).`);
+  }
+  if (warns.length) { R('warn').textContent = warns.join(' '); R('warn').hidden = false; }
+  const todo = my.messages.filter(x => x.status === 'pending').length;
+  if (!todo) { R('go').hidden = true; card.querySelector('.langrow').hidden = true; finishWa(card, R, my, body, true, question); return; }
+  card._question = question;
 }
 
-$('waStop').onclick = () => { ctl.stop = true; $('waStop').disabled = true; $('waStop').textContent = 'Parando…'; };
-$('waGo').onclick = () => runWa();
-$('waRetry').onclick = () => runWa();
+function stopWa(R) { ctl.stop = true; const b = R('stop'); b.disabled = true; b.querySelector('span').textContent = 'Parando…'; }
 
-async function runWa() {
-  if (!wa) return;
+async function runWa(card, R, my) {
+  if (wa !== my || busy) return;
   ctl = { stop: false };
-  const language = $('waLang').value;
-  $('waGo').disabled = true; $('waRetry').disabled = true; $('waStop').hidden = false; $('waStop').disabled = false; $('waStop').textContent = 'Parar';
-  busy(true); mark('processando as mídias');
+  R('go').hidden = true; R('retryRow').hidden = true; R('err').hidden = true; R('prog').hidden = false;
+  R('stopRow').hidden = false; R('stop').disabled = false; R('stop').querySelector('span').textContent = 'Parar';
+  card.querySelector('.langrow').hidden = true; R('info').hidden = true;
+  setBusy(true, () => stopWa(R)); mark('processando as mídias');
   const left = c => c.messages.filter(m => m.file && (m.status === 'pending' || m.status === 'error')).length;
-  const grand = wa.convs.reduce((a, c) => a + left(c), 0);
+  const grand = my.convs.reduce((a, c) => a + left(c), 0);
   let base = 0;
-  const show = done => wset(grand ? 100 * (base + done) / grand : 100, `Processando as mídias… ${base + done} de ${grand}`);
+  const show = done => { R('bar').style.width = (grand ? 100 * (base + done) / grand : 100) + '%'; R('msg').textContent = `Processando as mídias… ${base + done} de ${grand}`; };
+  let stopped = false, err = null;
   try {
     show(0);
-    let stopped = false;
-    for (const c of wa.convs) {
+    for (const c of my.convs) {
       const n = left(c); if (!n) continue;
-      const r = await withKey(key => processMedia(c.zip, c.messages, { url: GEMINI_URL, language, key, onProgress: show, control: ctl }));
+      const r = await withKey(key => processMedia(c.zip, c.messages, { url: GEMINI_URL, language: lang, key, onProgress: show, control: ctl }));
       if (r.stopped) { stopped = true; break; }
       base += n;
     }
-    unmark(); busy(false);
-    wset(0, stopped ? 'Processamento interrompido. O que já ficou pronto está abaixo; aperte "Processar conversa" para continuar.' : '');
-    $('waGo').hidden = !stopped; $('waGo').textContent = 'Continuar processamento';
-  } catch (e) {
-    unmark(); busy(false);
-    if (e instanceof LimitError) {
-      wset(0, e.message + '. O que já ficou pronto está abaixo. Amanhã (ou com um código de liberação) aperte "Continuar processamento" para seguir.', true);
-      $('waGo').hidden = false; $('waGo').textContent = 'Continuar processamento';
-    } else {
-      wset(0, 'Erro ao processar: ' + (e.message || e) + '. O que já ficou pronto está abaixo.', true);
-      $('waGo').hidden = false; $('waGo').textContent = RETRY;
+  } catch (e) { err = e; }
+  unmark(); setBusy(false);
+  R('prog').hidden = true; R('stopRow').hidden = true;
+  if (stopped || err) {
+    R('err').hidden = false;
+    R('err').textContent = stopped ? 'Processamento interrompido. O que já ficou pronto já está na conversa organizada; toque em "Continuar processamento" para seguir.'
+      : err instanceof LimitError ? err.message + '. O que já ficou pronto está na conversa organizada. Amanhã (ou com um código de liberação) toque em "Continuar processamento".'
+      : 'Erro ao processar: ' + (err.message || err) + '. O que já ficou pronto está na conversa organizada.';
+    R('go').hidden = false; R('run').querySelector('span').textContent = stopped || err instanceof LimitError ? 'Continuar processamento' : 'Tentar de novo';
+    if (err instanceof LimitError && !card.querySelector('[data-r="code"]')) {
+      const b = el('button', 'btn sec full press', `${I('key', 'sm')}<span>Tenho um código de liberação</span>`); b.type = 'button'; b.dataset.r = 'code'; b.onclick = () => openDrawer(true); R('go').append(b);
     }
   }
-  $('waGo').disabled = false; $('waRetry').disabled = false; $('waStop').hidden = true;
-  renderWaResult($('waResult').hidden);   // refaz a lista sem perder os filtros já usados
+  finishWa(card, R, my, card.parentElement, !my.ready, card._question);
 }
 
-const filters = () => ({ conv: $('fConv').value, sender: $('fSender').value, from: $('fFrom').value, to: $('fTo').value, q: $('fQ').value });
-
-function renderWaResult(first) {
-  const { parsed, messages } = wa;
+function finishWa(card, R, my, body, first, question) {
+  const total = my.messages.length, failed = my.messages.filter(m => m.status === 'error').length;
+  R('done').hidden = false;
+  R('count').innerHTML = ''; const b = document.createElement('strong'); b.textContent = 'Conversa organizada'; R('count').append(b, ` · ${plural(total, 'mensagem', 'mensagens')} por data e pessoa.`);
+  R('fail').textContent = failed ? `${failed} ${failed === 1 ? 'item não pôde' : 'itens não puderam'} ser processado${failed === 1 ? '' : 's'} (aparece${failed === 1 ? '' : 'm'} marcado${failed === 1 ? '' : 's'} na conversa).` : '';
+  R('fail').hidden = !failed; R('retryRow').hidden = !failed || !R('go').hidden;
   if (first) {
-    const cs = $('fConv'); cs.length = 1; cs.value = ''; $('fConvWrap').hidden = wa.convs.length < 2;
-    wa.convs.forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; cs.append(o); });
-    const sel = $('fSender'); sel.length = 1; sel.value = '';
-    parsed.senders.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.append(o); });
-    $('fFrom').min = $('fTo').min = parsed.firstDate; $('fFrom').max = $('fTo').max = parsed.lastDate;
-    $('fFrom').value = $('fTo').value = $('fQ').value = '';
+    my.ready = true; ctx = { kind: 'wa' }; reoHistory.length = 0;
+    follows(body, [
+      ['spark', 'Resumir a conversa', () => ask('Resuma a conversa.')],
+      ['tag', 'Assuntos', () => ask('Quais assuntos foram tratados? Liste em ordem cronológica.')],
+      ['calcheck', 'Combinados e prazos', () => ask('Quais foram os combinados, pedidos e prazos citados?')],
+    ]);
+    toEnd();
+    if (question) { card._question = ''; ask(question); }
   }
-  const failed = messages.filter(m => m.status === 'error').length;
-  $('waFail').textContent = failed ? `${failed} ${failed === 1 ? 'item não pôde' : 'itens não puderam'} ser processado${failed === 1 ? '' : 's'} (aparece${failed === 1 ? '' : 'm'} marcado${failed === 1 ? '' : 's'} na conversa).` : '';
-  $('waRetry').hidden = !failed;
-  $('waResult').hidden = false; $('reo').hidden = false;
-  refreshWa();
-  if (first) $('waResult').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
 }
 
-function refreshWa(keepLimit) {
-  if (!wa) return;
-  if (!keepLimit) waLimit = 300;
-  const f = filters(), on = hasFilters(f);
-  waShown = applyFilters(wa.messages, f);
-  const total = wa.messages.length;
-  $('waCount').textContent = on ? `${waShown.length.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')}` : `${total.toLocaleString('pt-BR')} ${total === 1 ? 'mensagem' : 'mensagens'}`;
-  const ol = $('waList'); ol.textContent = '';
-  if (!waShown.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Nenhuma mensagem com esses filtros.'; ol.append(li); }
-  const frag = document.createDocumentFragment();
-  for (const m of waShown.slice(0, waLimit)) {
-    const li = document.createElement('li');
-    const meta = document.createElement('div'); meta.className = 'meta';
-    const t = document.createElement('time'); t.textContent = `${brDate(m.date)} ${m.time}`;
-    const who = document.createElement('span'); who.className = 'who'; who.textContent = m.sender;
-    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = TYPE_LABEL[m.kind] || m.kind;
-    if (wa.convs.length > 1) { const cv = document.createElement('span'); cv.className = 'tag'; cv.textContent = m.conv; meta.append(cv); }
-    meta.append(t, who, tag);
-    const body = document.createElement('div'); body.className = 'body'; body.textContent = lineContent(m);
-    li.append(meta, body); frag.append(li);
+function openConv(my) {
+  if (wa !== my) { toast('Essa conversa foi fechada'); return; }
+  const many = my.convs.length > 1;
+  const sh = openSheet(`<div class="sheet-h"><div><h3>Conversa organizada</h3><p class="sub" id="cvCount"></p></div><button class="ibtn press" id="cvClose" aria-label="Fechar">${I('x')}</button></div>
+    <div class="filters">
+      ${many ? `<label class="fld sel wide"><span class="k">Conversa</span><select id="fConv"><option value="">Todas as conversas</option>${my.convs.map(c => `<option>${esc(c.name)}</option>`).join('')}</select></label>` : ''}
+      <label class="fld sel wide"><span class="k">Pessoa</span><select id="fSender"><option value="">Todas as pessoas</option>${my.parsed.senders.map(n => `<option>${esc(n)}</option>`).join('')}</select></label>
+      <label class="fld"><span class="k">De</span><input type="date" id="fFrom" min="${my.parsed.firstDate}" max="${my.parsed.lastDate}"></label>
+      <label class="fld"><span class="k">Até</span><input type="date" id="fTo" min="${my.parsed.firstDate}" max="${my.parsed.lastDate}"></label>
+      <label class="fld wide"><span class="k">Buscar na conversa</span><input type="search" id="fQ" autocomplete="off" enterkeyhint="search"></label>
+    </div>
+    <div class="scroll"><ol class="mlist" id="cvList"></ol></div>
+    <div class="sheet-acts"><button type="button" class="btn sec press" id="cvCopy">${I('copy', 'sm')}<span>Copiar</span></button><button type="button" class="btn pri press" id="cvMd">${I('md', 'sm')}<span>Exportar .md</span></button><button type="button" class="btn sec full press" id="cvMdAll" hidden>${I('md', 'sm')}<span>Exportar tudo (.md)</span></button></div>`, 'tall');
+  const q = id => sh.el.querySelector('#' + id);
+  for (const [k, id] of [['conv', 'fConv'], ['sender', 'fSender'], ['from', 'fFrom'], ['to', 'fTo'], ['q', 'fQ']]) {
+    const f = q(id); if (!f) { waFilters[k] = ''; continue; }
+    f.value = waFilters[k];
+    f.addEventListener(id === 'fQ' ? 'input' : 'change', () => { waFilters[k] = f.value; render(); });
   }
-  if (waShown.length > waLimit) {
-    const li = document.createElement('li'); li.className = 'moreli';
-    const b = document.createElement('button'); b.type = 'button';
-    b.textContent = `Mostrar mais (${(waShown.length - waLimit).toLocaleString('pt-BR')} restantes)`;
-    b.onclick = () => { waLimit += 400; refreshWa(true); };
-    li.append(b); frag.append(li);
-  }
-  ol.append(frag);
-  $('waMd').textContent = on ? 'Exportar o filtrado (.md)' : 'Exportar (.md)';
-  $('waMdAll').hidden = !on;
-  $('waCopy').textContent = on ? 'Copiar texto filtrado' : 'Copiar texto';
-}
-['fConv', 'fSender', 'fFrom', 'fTo'].forEach(id => $(id).addEventListener('change', () => refreshWa()));
-$('fQ').addEventListener('input', () => refreshWa());
-
-const downloadText = (name, content, type) => {
-  const url = blobUrl(content, type), a = document.createElement('a');
-  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-};
-const exportMd = all => {
-  const f = all ? {} : filters(), list = all ? wa.messages : waShown;
-  downloadText(wa.name + (hasFilters(f) ? '-filtrado' : '') + '.md',
-    toMarkdown(list, { fileName: waFile.name, total: wa.messages.length, filters: f, senders: wa.parsed.senders }), 'text/markdown');
-};
-$('waMd').onclick = () => exportMd(false);
-$('waMdAll').onclick = () => exportMd(true);
-$('waCopy').onclick = async () => {
-  const t = toTranscript(waShown), b = $('waCopy'), idle = b.textContent;
-  try { await navigator.clipboard.writeText(t); } catch (_) { const a = document.createElement('textarea'); a.value = t; document.body.append(a); a.select(); document.execCommand('copy'); a.remove(); }
-  b.textContent = 'Copiado!'; setTimeout(() => { b.textContent = idle; }, 2000);
-};
-
-// ----- Chat com o Reo: só texto; o único contexto enviado é a transcrição deste arquivo -----
-let sessionId = '';
-try { sessionId = sessionStorage.getItem('transcriby_sessao') || ''; } catch (_) {}
-if (!sessionId) {
-  sessionId = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
-  try { sessionStorage.setItem('transcriby_sessao', sessionId); } catch (_) {}
-}
-
-// Mostra a resposta com títulos, listas e negrito simples, sem aceitar HTML.
-function rich(el, text) {
-  el.textContent = '';
-  const inline = (parent, s) => s.split(/(\*\*[^*]+\*\*)/).forEach(part => {
-    if (/^\*\*[^*]+\*\*$/.test(part)) { const b = document.createElement('strong'); b.textContent = part.slice(2, -2); parent.append(b); }
-    else if (part) parent.append(part);
-  });
-  let list = null, kind = '';
-  for (const line of String(text).split('\n')) {
-    const t = line.trimEnd(); let m;
-    if (!t.trim()) { list = null; continue; }
-    if ((m = t.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/))) {
-      const k = /\d/.test(m[1]) ? 'ol' : 'ul';
-      if (!list || kind !== k) { list = document.createElement(k); kind = k; el.append(list); }
-      const li = document.createElement('li'); inline(li, m[2]); list.append(li); continue;
+  q('cvClose').onclick = () => sh.close();
+  function render(keep) {
+    if (!keep) waLimit = 300;
+    const on = hasFilters(waFilters), total = my.messages.length;
+    waShown = applyFilters(my.messages, waFilters);
+    q('cvCount').textContent = on ? `${waShown.length.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} mensagens` : plural(total, 'mensagem', 'mensagens');
+    const ol = q('cvList'); ol.textContent = '';
+    if (!waShown.length) ol.append(el('li', 'mempty', 'Nenhuma mensagem com esses filtros.'));
+    const frag = document.createDocumentFragment();
+    for (const m of waShown.slice(0, waLimit)) {
+      const li = el('li', 'mi' + (m.status === 'error' ? ' err' : ''));
+      const av = el('span', 'av'); av.style.background = avColor(m.sender); av.textContent = initials(m.sender);
+      const box = document.createElement('div'), who = el('div', 'who');
+      const b = document.createElement('b'); b.textContent = m.sender;
+      const t = document.createElement('time'); t.textContent = `${brDate(m.date)} ${m.time}`;
+      const k = el('span', 'kind', I(KIND_ICON[m.kind] || 'file')); k.append(TYPE_LABEL[m.kind] || m.kind);
+      who.append(b, t, k);
+      if (many) { const cv = el('span', 'kind conv'); cv.textContent = m.conv; who.append(cv); }
+      const p = document.createElement('p'); p.textContent = lineContent(m);
+      box.append(who, p); li.append(av, box); frag.append(li);
     }
-    list = null;
-    if ((m = t.match(/^#{1,6}\s+(.*)$/))) { const h = document.createElement('h4'); inline(h, m[1]); el.append(h); continue; }
-    const p = document.createElement('p'); inline(p, t.trim()); el.append(p);
+    if (waShown.length > waLimit) {
+      const li = document.createElement('li'), btn = el('button', 'more press'); btn.type = 'button';
+      btn.textContent = `Mostrar mais (${(waShown.length - waLimit).toLocaleString('pt-BR')} restantes)`;
+      btn.onclick = () => { waLimit += 400; render(true); };
+      li.append(btn); frag.append(li);
+    }
+    ol.append(frag);
+    q('cvMd').querySelector('span').textContent = on ? 'Exportar filtro' : 'Exportar .md';
+    q('cvMdAll').hidden = !on;
+    q('cvCopy').querySelector('span').textContent = on ? 'Copiar filtro' : 'Copiar';
   }
-}
-const addBubble = (cls, text, isRich) => {
-  const d = document.createElement('div'); d.className = 'bub ' + cls;
-  if (isRich) rich(d, text); else d.textContent = text;
-  $('reoLog').append(d); d.scrollIntoView({ block: 'nearest' }); return d;
-};
-// Embaixo de resumos e respostas longas: perguntar se quer copiar o texto ou baixar em .md (Markdown).
-function addActions(bub, question, out) {
-  if (!(/resum/i.test(question) || out.length >= 600)) return;
-  const row = document.createElement('div'); row.className = 'bubacts';
-  const lead = document.createElement('span'); lead.textContent = 'Quer copiar esta resposta ou baixar em .md?';
-  const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Copiar';
-  copy.onclick = async () => {
-    try { await navigator.clipboard.writeText(out); } catch (_) { const a = document.createElement('textarea'); a.value = out; document.body.append(a); a.select(); document.execCommand('copy'); a.remove(); }
-    copy.textContent = 'Copiado!'; setTimeout(() => { copy.textContent = 'Copiar'; }, 2000);
+  const exportMd = all => {
+    const f = all ? {} : { ...waFilters }, list = all ? my.messages : waShown;
+    downloadText(my.name + (hasFilters(f) ? '-filtrado' : '') + '.md', toMarkdown(list, { fileName: waFile.name, total: my.messages.length, filters: f, senders: my.parsed.senders }), 'text/markdown');
   };
-  const dl = document.createElement('button'); dl.type = 'button'; dl.textContent = 'Baixar .md';
-  dl.onclick = () => {
-    const base = (waFile && waFile.name ? waFile.name : 'conversa').replace(/\.[^.]+$/, '');
-    const a = document.createElement('a');
-    a.href = blobUrl(`# Reo: ${base}\n\n${out}\n`, 'text/markdown'); a.download = `reo-${/resum/i.test(question) ? 'resumo' : 'resposta'}-${base}.md`;
-    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  };
-  row.append(lead, copy, dl); bub.append(row);
+  q('cvMd').onclick = () => exportMd(false);
+  q('cvMdAll').onclick = () => exportMd(true);
+  q('cvCopy').onclick = async () => { const ok = await copyText(toTranscript(waShown)); toast(ok ? 'Texto copiado' : 'Não consegui copiar'); };
+  render();
 }
-const setReoBusy = b => { reoBusy = b; $('reoSend').disabled = b; $('reoSend').textContent = b ? 'O Reo está lendo…' : 'Enviar'; $('reoChips').querySelectorAll('button').forEach(x => { x.disabled = b; }); };
 
-async function sendReo(message) {
-  message = message.trim();
-  if (!message || reoBusy || !wa) return;
-  const transcript = toTranscript(wa.messages);
-  if (transcript.length > REO_LIMIT_CHARS) { addBubble('reo err', 'Esta conversa é grande demais para o chat do Reo. Use os filtros e o .md exportado, ou envie um período menor.'); return; }
-  addBubble('me', message); $('reoIn').value = ''; setReoBusy(true);
-  const wait = addBubble('reo', 'Lendo a conversa…');
-  let started = false;
-  try {
-    const reply = await withKey(key => askReo({ message, history: reoHistory.slice(-16), transcript }, {
-      url: GEMINI_URL, key, session: sessionId,
-      onText: t => { if (t) { started = true; rich(wait, t); wait.scrollIntoView({ block: 'nearest' }); } },   // a resposta aparece aos poucos
-    }));
-    const out = reply || 'Não consegui responder agora. Tente reformular a pergunta.';
-    rich(wait, out); addActions(wait, message, out);
-    reoHistory.push({ role: 'user', text: message }, { role: 'model', text: out });
-  } catch (e) {
-    if (!started) wait.remove();
-    addBubble('reo err', 'Não consegui responder: ' + (e.message || e));
-  }
-  setReoBusy(false);
-}
-$('reoForm').onsubmit = e => { e.preventDefault(); sendReo($('reoIn').value); };
-$('reoChips').addEventListener('click', e => { const b = e.target.closest('button[data-q]'); if (b) sendReo(b.dataset.q); });
-$('reoIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && matchMedia('(hover:hover) and (pointer:fine)').matches) { e.preventDefault(); sendReo($('reoIn').value); } });
-// O chat só aceita texto: arquivos soltos ou colados na caixa são ignorados.
-$('reoIn').addEventListener('drop', e => e.preventDefault());
-$('reoIn').addEventListener('paste', e => { if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length) e.preventDefault(); });
+hello();
+grow();
 </script>
 </body>
 </html>
