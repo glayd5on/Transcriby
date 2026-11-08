@@ -109,3 +109,8 @@ test("várias conversas: transcrição com cabeçalho por conversa, filtro por c
   assert.match(md, /- Período: 15\/10\/2026 a 20\/10\/2026/);
   assert.match(md, /=== Conversa: Trabalho ===/);
 });
+
+test("anexo do iPhone em português escrito como <anexado: ...>", () => {
+  const { messages: m } = parseChat("[15/10/2026 09:12:30] Maria: \u200e<anexado: 00000012-PHOTO-2026-10-15-09-12-30.jpg>", ["00000012-PHOTO-2026-10-15-09-12-30.jpg"]);
+  assert.equal(m[0].kind, "imagem"); assert.equal(m[0].file, "00000012-PHOTO-2026-10-15-09-12-30.jpg");
+});
