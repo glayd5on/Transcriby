@@ -399,6 +399,27 @@ body.think { --spd:2.6; }
 .feat { display:flex; gap:12px; align-items:center; padding:10px 4px; font-size:14.5px; animation:msgIn .4s var(--ease) both; }
 .feat:nth-child(2) { animation-delay:.06s; } .feat:nth-child(3) { animation-delay:.12s; }
 
+/* planos (em breve) */
+.soon { font:600 10px var(--mono); letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; color:var(--violet); background:rgba(123,77,255,.1); white-space:nowrap; vertical-align:middle; }
+.ditem .soon { margin-left:auto; }
+.plans { display:flex; flex-direction:column; gap:12px; padding-bottom:6px; }
+.plan { flex:none; position:relative; display:flex; flex-direction:column; gap:12px; padding:16px; border-radius:20px; background:var(--paper); box-shadow:inset 0 0 0 1px var(--line), var(--sh); animation:msgIn .45s var(--ease) both; }
+.plan:nth-child(2) { animation-delay:.07s; } .plan:nth-child(3) { animation-delay:.14s; } .plan:nth-child(4) { animation-delay:.21s; }
+.plan.glass { background:linear-gradient(145deg,rgba(255,255,255,.78),rgba(255,255,255,.42)); }
+.plan-h { display:flex; align-items:center; gap:12px; }
+.plan-h .tx { flex:1; min-width:0; }
+.plan-h b { display:block; font-weight:600; font-size:16.5px; letter-spacing:-.015em; }
+.plan-h small { display:block; color:var(--mut); font-size:13px; }
+.price { display:flex; align-items:baseline; gap:3px; font-family:var(--ui); }
+.price b { font-size:30px; font-weight:600; letter-spacing:-.03em; line-height:1; }
+.price span { color:var(--mut); font-size:13.5px; }
+.plan ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.plan li { display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--ink2); }
+.plan li .i { color:var(--mint); margin-top:2px; }
+.plan .btn { min-height:44px; }
+.plan-free { flex:none; display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:16px; background:var(--s2); color:var(--ink2); font-size:14px; animation:msgIn .4s var(--ease) both; }
+.plan-free b { font-weight:600; color:var(--ink); }
+
 /* filtros e lista da conversa */
 .filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
 .fld { position:relative; display:block; height:56px; border-radius:14px; background:var(--s2); overflow:hidden; box-shadow:inset 0 0 0 1px transparent; transition:box-shadow .2s; }
@@ -655,6 +676,7 @@ body.think { --spd:2.6; }
   <button class="ditem new press" id="dNew"><svg class="i"><use href="#edit"/></svg><span>Nova conversa</span></button>
   <button class="ditem press" id="dAv"><span class="eqi sm" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Transcrever áudio ou vídeo</span></button>
   <button class="ditem press" id="dWa"><svg class="i"><use href="#chat"/></svg><span>Organizar conversa do WhatsApp</span></button>
+  <button class="ditem press" id="dPlans"><svg class="i"><use href="#tag"/></svg><span>Planos</span><span class="soon">Em breve</span></button>
   <div class="dlab">Seu uso hoje</div>
   <section class="win glass" id="usage" aria-label="Uso de hoje">
     <div class="win-h"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Uso de hoje</span><span class="pill" id="usagePill">…</span></div>
@@ -868,6 +890,7 @@ $('dWa').onclick = () => { closeDrawer(); $('fWa').click(); };
 $('dHow').onclick = () => { closeDrawer(); howTo(); };
 $('dFaq').onclick = () => { closeDrawer(); faqSheet(); };
 $('dReo').onclick = () => { closeDrawer(); modelSheet(); };
+$('dPlans').onclick = () => { closeDrawer(); plansSheet(); };
 addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeSheet(); closePop(); } });
 
 let sheetOpen = null;
@@ -902,6 +925,30 @@ function modelSheet() {
     <button class="opt" role="radio" aria-checked="true"><span class="tile c-blue">${REO(22)}</span><span class="tx"><b>Reo 1.0</b><small>Versão atual</small></span><span class="radio"></span></button>`);
 }
 $('openModel').onclick = modelSheet;
+
+/* ===================== planos (ainda não valem: só vitrine "Em breve") ===================== */
+const PLANS = [
+  { name: 'Básico', price: 30, ic: 'wave', c: 'c-blue', sub: 'Para quem transcreve de vez em quando', items: [
+    '3 horas de transcrição por dia', 'Resumo com o Reo', 'Conversa do WhatsApp com até 2 horas de áudio'] },
+  { name: 'Pro', price: 50, ic: 'spark', c: 'c-violet', sub: 'Para o uso diário', items: [
+    '8 horas de transcrição por dia', 'Resumos e perguntas ao Reo sem limite de tentativas',
+    'WhatsApp com até 10 horas de áudio, vários .zip de uma vez', 'Fila com prioridade: transcreve mais rápido'] },
+  { name: 'Ilimitado', price: 70, ic: 'clock', c: 'c-pink', glass: true, sub: 'Sem se preocupar com horas', items: [
+    'Transcrição sem limite de horas', 'Tudo do plano Pro', 'Histórico salvo das suas transcrições', 'Suporte direto'] },
+];
+function plansSheet() {
+  const sh = openSheet(`<div class="sheet-h"><div><h3>Planos <span class="soon">Em breve</span></h3><p class="sub">Ainda estamos preparando. Por enquanto, tudo segue grátis.</p></div><button class="ibtn press" id="plClose" aria-label="Fechar">${I('x')}</button></div>
+    <div class="scroll plans">
+      <div class="plan-free">${I('check', 'sm')}<span>Hoje você usa o plano <b>Grátis</b>: 60 minutos por dia.</span></div>${
+      PLANS.map(p => `<section class="plan${p.glass ? ' glass' : ''}" aria-label="Plano ${p.name}">
+        <div class="plan-h"><span class="tile ${p.c}">${I(p.ic)}</span><span class="tx"><b>${p.name}</b><small>${p.sub}</small></span><span class="price"><b>R$ ${p.price}</b><span>/mês</span></span></div>
+        <ul>${p.items.map(t => `<li>${I('check', 'sm')}<span>${t}</span></li>`).join('')}</ul>
+        <button type="button" class="btn sec" disabled aria-label="Plano ${p.name}: em breve"><span>Em breve</span></button>
+      </section>`).join('')}
+    </div>`, 'tall');
+  sh.el.querySelector('#plClose').onclick = () => sh.close();
+}
+
 
 function langSheet(after) {
   const sh = openSheet(`<h3>Idioma do áudio</h3><p class="sub">Em que idioma as pessoas falam no arquivo.</p><div role="radiogroup">${
