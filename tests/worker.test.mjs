@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import worker from "../cloudflare/worker.js";
 import { isSuspicious, CFG } from "../cloudflare/guard.js";
 import { REO_SYSTEM } from "../cloudflare/reo.js";
-import { UsageCounter, createMemoryStorage, audioCost, ipKey, dayKey, resetAt, MAX_BAD_CODES } from "../cloudflare/limits.js";
+import { DEFAULTS, UsageCounter, createMemoryStorage, audioCost, ipKey, dayKey, resetAt, MAX_BAD_CODES } from "../cloudflare/limits.js";
 
 const realFetch = globalThis.fetch;
 let sent = [], telegram = [], missing = new Set();
@@ -20,7 +20,8 @@ globalThis.fetch = async (url, init) => {
 const reset = () => { sent = []; telegram = []; missing = new Set(); };
 
 class FakeKV { m = new Map(); async get(k) { return this.m.get(k) ?? null; } async put(k, v) { this.m.set(k, v); } }
-const mkEnv = (extra = {}) => ({ GEMINI_API_KEY: "k", ...extra });
+// Os testes gerais usam um limite folgado (o contador na memória é compartilhado entre eles); o padrão real é testado à parte.
+const mkEnv = (extra = {}) => ({ GEMINI_API_KEY: "k", DAILY_LIMIT_IP_MIN: "300", ...extra });
 const ctx = { waitUntil: (p) => p };
 const post = (qs, body, headers = {}) => new Request("https://w.example/" + qs, { method: "POST", body: typeof body === "string" || body instanceof Uint8Array ? body : JSON.stringify(body), headers: { Origin: "https://glayd5on.github.io", "CF-Connecting-IP": "1.2.3.4", ...headers } });
 const chat = (message, transcript = "[15/10/2026 09:00] Maria (texto): oi", extra = {}) => post("?mode=chat", { message, transcript, ...extra }, { "X-Session-Id": "sess1" });
@@ -360,3 +361,7 @@ test("o contador zera no dia seguinte (horário de Brasília) e o IPv6 conta pel
 });
 
 test.after(() => { globalThis.fetch = realFetch; });
+
+test("o limite diário padrão por pessoa é de 60 minutos", () => {
+  assert.equal(DEFAULTS.ipMin, 60);
+});

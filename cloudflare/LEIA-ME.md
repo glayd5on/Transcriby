@@ -73,7 +73,7 @@ Limite geral de 40 mensagens por IP em 10 minutos. O contador do KV não é atô
 
 O código está em `cloudflare/limits.js`. Cada pessoa (por IP) e o site inteiro têm um limite por dia, em **minutos de uso**:
 o áudio conta pela duração, cada foto vale 0,2 min e cada resumo ou pergunta ao Reo vale 2 min. Zera à meia-noite de Brasília.
-Padrões: 300 min por pessoa e 3.000 min para o site todo. Para trocar, crie as variáveis de texto `DAILY_LIMIT_IP_MIN` e
+Padrões: 60 min por pessoa e 3.000 min para o site todo. Para trocar, crie as variáveis de texto `DAILY_LIMIT_IP_MIN` e
 `DAILY_LIMIT_SITE_MIN` no Cloudflare (Settings, Variables and Secrets).
 
 - **Contador:** um Durable Object chamado `USAGE`, declarado no `wrangler.toml` (não precisa criar nada no painel).

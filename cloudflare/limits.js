@@ -5,9 +5,9 @@
 // O contador fica num Durable Object (binding USAGE), que soma sem erro mesmo com pedidos ao mesmo tempo.
 // Sem o binding USAGE o Worker usa a memória dele (freio fraco: some quando reinicia) e o ?status avisa.
 //
-// Variáveis opcionais: DAILY_LIMIT_IP_MIN (padrão 300), DAILY_LIMIT_SITE_MIN (padrão 3000), UNLIMITED_CODES (segredo).
+// Variáveis opcionais: DAILY_LIMIT_IP_MIN (padrão 60), DAILY_LIMIT_SITE_MIN (padrão 3000), UNLIMITED_CODES (segredo).
 
-export const DEFAULTS = { ipMin: 300, siteMin: 3000 };
+export const DEFAULTS = { ipMin: 60, siteMin: 3000 };
 export const COST = { image: 0.2, summary: 2, chat: 2 };   // em minutos de uso
 export const MAX_BAD_CODES = 10;                            // códigos errados por IP por hora antes de bloquear
 
