@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#F6F6FA">
+<script>
+/* visual escolhido (foco | aurora): lido antes de pintar a página, para não piscar */
+(function(){var m='';try{m=localStorage.getItem('transcriby_visual')||''}catch(e){}
+if(m!=='foco'&&m!=='aurora')m='';var d=document.documentElement;d.dataset.mode=m||'aurora';if(!m)d.dataset.first='1';
+if(m==='foco'){var t=document.querySelector('meta[name=theme-color]');if(t)t.setAttribute('content','#FFFFFF')}})();
+</script>
 <title>Transcriby</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -242,7 +248,7 @@ body[data-skin="glass"] .reo.big .r-glow { opacity:.75; }
 .doc-h { display:flex; align-items:center; gap:10px; }
 .doc-h b { font-weight:600; font-size:16px; letter-spacing:-.01em; }
 .doc-h .meta { margin-left:auto; }
-.errbox { padding:12px 14px; border-radius:14px; background:var(--errbg); color:var(--err); font-size:14.5px; }
+.errbox { padding:12px 14px; border-radius:14px; background:var(--errbg); color:var(--err); font-size:14.5px; overflow-wrap:anywhere; }
 .warnbox { padding:12px 14px; border-radius:14px; background:#FFF6E8; color:#8A4B00; font-size:14.5px; box-shadow:inset 0 0 0 1px rgba(242,150,47,.25); }
 .infobox { padding:12px 14px; border-radius:14px; background:var(--s2); color:var(--mut); font-size:13.5px; }
 
@@ -596,6 +602,134 @@ body.think { --spd:2.6; }
 @media (max-height:780px) { .hello { padding-top:36px; gap:12px; } .hello .reo.big { font-size:58px !important; } .hello h1 { font-size:clamp(26px,7.4vw,32px); } .hello p { font-size:14px; margin-top:-4px; } .cardq small { display:none; } }
 @media (max-height:640px) { .hello p { display:none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.001s !important; animation-iteration-count:1 !important; transition-duration:.001s !important; scroll-behavior:auto !important; } }
+
+/* =====================================================================
+   Dois visuais, escolhidos na primeira visita e trocáveis no menu (html[data-mode]):
+   · Aurora: o visual colorido e animado de sempre (padrão).
+   · Foco: preto e branco minimalista, sem animações de enfeite (só as que mostram que algo está acontecendo).
+   ===================================================================== */
+html[data-mode="foco"] {
+  --bg:#FFFFFF; --paper:#FFFFFF; --ink:#000000; --ink2:#1C1C1C; --mut:#555555; --dim:#7C7C7C;
+  --s1:#FFFFFF; --s2:#F3F3F3; --s3:#E3E3E3; --line:#D8D8D8; --sh:0 0 0 0 transparent;
+  --blue:#000; --violet:#000; --pink:#000; --amber:#000; --mint:#000; --err:#000; --errbg:#F3F3F3;
+  --spectrum:#000; --conic:conic-gradient(#000,#000);
+}
+html[data-mode="foco"] *, html[data-mode="foco"] *::before, html[data-mode="foco"] *::after { animation:none !important; transition-duration:.16s !important; transition-delay:0s !important; }
+html[data-mode="foco"] ::selection { background:#000; color:#fff; }
+html[data-mode="foco"] .sky { display:none; }
+html[data-mode="foco"] .top { background:#fff; backdrop-filter:none; -webkit-backdrop-filter:none; }
+html[data-mode="foco"] .comp-wrap { background:linear-gradient(rgba(255,255,255,0),#fff 28%); }
+html[data-mode="foco"] :is(.cardq,.tblock,.card,.chip,.glass,.top) { backdrop-filter:none; -webkit-backdrop-filter:none; }
+/* o que continua mexendo, porque informa: folhas e gaveta entram rápido, rodinha de "trabalhando" e cursor piscando */
+html[data-mode="foco"] .scrim { animation:fade .18s both !important; background:rgba(0,0,0,.4); backdrop-filter:none; -webkit-backdrop-filter:none; }
+html[data-mode="foco"] .scrim.out { animation:fadeO .18s both !important; }
+html[data-mode="foco"] .sheet { animation:sheetUp .24s var(--ease) both !important; border-radius:18px 18px 0 0; box-shadow:0 -1px 0 #000, 0 -20px 40px -24px rgba(0,0,0,.35); }
+html[data-mode="foco"] .sheet.out { animation:sheetDn .2s var(--ease) both !important; }
+html[data-mode="foco"] .drawer { animation:drIn .24s var(--ease) both !important; box-shadow:1px 0 0 #000; }
+html[data-mode="foco"] .drawer.out { animation:drOut .2s var(--ease) both !important; }
+html[data-mode="foco"] .spin::before, html[data-mode="foco"] .send.wait::before { background:conic-gradient(from var(--ang),rgba(0,0,0,0) 0 25%,#000); animation:turn .9s linear infinite !important; }
+html[data-mode="foco"] .caret { width:2px; height:1.05em; margin-left:2px; border-radius:0; background:#000; box-shadow:none; vertical-align:-.15em; animation:fcaret 1s steps(1) infinite !important; }
+@keyframes fcaret { 50% { opacity:0; } }
+
+/* logo do Reo: círculo preto com as ondinhas brancas, parado */
+html[data-mode="foco"] .reo :is(.r-glow,.r-ring,.r-core,.r-b,.r-tint,.r-face,.r-shine,.r-nt,.r-rip) { display:none !important; }
+html[data-mode="foco"] .reo .r-ball { background:#000; box-shadow:none; filter:none; }
+html[data-mode="foco"] .reo .r-bars { opacity:1 !important; scale:1 !important; filter:none !important; transform:none; }
+html[data-mode="foco"] .reo .r-bars b { background:#fff; box-shadow:none; transform:scaleY(1); }
+html[data-mode="foco"] .drawer .logo { background:#000; border-radius:8px; }
+html[data-mode="foco"] .drawer .logo::before { display:none; }
+html[data-mode="foco"] .ver { background:#000; color:#fff; border-radius:4px; }
+
+/* texto, cartões e botões: linhas finas, sem cor, sem sombra */
+html[data-mode="foco"] .hello h1 { font-weight:600; letter-spacing:-.045em; }
+html[data-mode="foco"] .grad { background:none; -webkit-background-clip:border-box; background-clip:border-box; color:var(--ink); text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:.16em; }
+html[data-mode="foco"] .shim { background:none; -webkit-background-clip:border-box; background-clip:border-box; color:var(--mut); }
+html[data-mode="foco"] :is(.c-mint,.c-pink,.c-violet,.c-amber,.c-blue) { color:#000; }
+html[data-mode="foco"] .tile { background:var(--s2); border-radius:8px; }
+html[data-mode="foco"] .cardq { background:#fff; border-radius:12px; box-shadow:inset 0 0 0 1px var(--line); }
+html[data-mode="foco"] .cardq::before { display:none; }
+html[data-mode="foco"] .cardq:hover { box-shadow:inset 0 0 0 1px #000; }
+html[data-mode="foco"] :is(.card,.tblock,.doc,.att,.plan,.stat) { border-radius:12px; box-shadow:inset 0 0 0 1px var(--line); }
+html[data-mode="foco"] .glass { background:#fff; border-radius:12px; box-shadow:inset 0 0 0 1px var(--line); }
+html[data-mode="foco"] .glass::before, html[data-mode="foco"] .glass::after { display:none; }
+html[data-mode="foco"] .plan.glass { background:#fff; }
+html[data-mode="foco"] .bub { border-radius:14px 14px 4px 14px; }
+html[data-mode="foco"] .chip { border-radius:10px; box-shadow:inset 0 0 0 1px var(--line); background:#fff; }
+html[data-mode="foco"] .chip:hover { box-shadow:inset 0 0 0 1px #000; }
+html[data-mode="foco"] .btn { border-radius:12px; }
+html[data-mode="foco"] .btn.pri { background:#000; color:#fff; box-shadow:none; }
+html[data-mode="foco"] .btn.pri::after { display:none; }
+html[data-mode="foco"] .btn.sec { background:#fff; box-shadow:inset 0 0 0 1.5px #000; }
+html[data-mode="foco"] .cbtn { border-radius:10px; }
+html[data-mode="foco"] .send { border-radius:12px; background:#000; }
+html[data-mode="foco"] .send.wait { background:var(--s3); }
+html[data-mode="foco"] .comp { border-radius:18px; padding:1.5px; background:#000; }
+html[data-mode="foco"] .comp::before { display:none; }
+html[data-mode="foco"] .comp-box { border-radius:16.5px; }
+html[data-mode="foco"] .pop { border-radius:14px; box-shadow:0 0 0 1px #000, 0 14px 30px -14px rgba(0,0,0,.3); }
+html[data-mode="foco"] .toast { border-radius:10px; box-shadow:none; }
+html[data-mode="foco"] .toast .i { color:#fff; }
+html[data-mode="foco"] .errbox { background:#fff; color:#000; box-shadow:inset 0 0 0 1.5px #000; }
+html[data-mode="foco"] .warnbox { background:var(--s2); color:#000; box-shadow:inset 0 0 0 1px var(--line); }
+html[data-mode="foco"] .soon, html[data-mode="foco"] .kind.conv { color:#000; background:var(--s3); }
+html[data-mode="foco"] .act.ok, html[data-mode="foco"] .donei, html[data-mode="foco"] .badi { color:#000; }
+html[data-mode="foco"] .ln.hit .t { background:#000; box-shadow:none; }
+html[data-mode="foco"] .ln.hit .a { background:#000; }
+html[data-mode="foco"] .scan, html[data-mode="foco"] .track i::after { display:none; }
+html[data-mode="foco"] .live i { background:#000; }
+html[data-mode="foco"] .track i { background:#000; }
+html[data-mode="foco"] .av, html[data-mode="foco"] .avs span { filter:grayscale(1) brightness(.78); }
+html[data-mode="foco"] .faq .tile, html[data-mode="foco"] .cost .tile { background:var(--s2); box-shadow:none; }
+html[data-mode="foco"] .win-h .dots i { background:#C9C9C9 !important; }
+html[data-mode="foco"] .win-h .pill, html[data-mode="foco"] .cost em { background:var(--s2); box-shadow:none; }
+html[data-mode="foco"] .ring { background:conic-gradient(from -90deg,#000 calc(var(--p)*1%),var(--s3) 0); }
+html[data-mode="foco"] .ring::before { background:#fff; box-shadow:none; }
+html[data-mode="foco"] .cardq[data-act]::after, html[data-mode="foco"] .cardq .tile::after { display:none; }
+
+/* ---------- tela de escolha do visual (primeira visita e menu) ---------- */
+#visual { display:none; position:fixed; inset:0; z-index:90; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; background:#F6F6FA; color:#14151F; font-family:var(--ui); animation:fade .3s both; }
+#visual.open, html[data-first="1"] #visual { display:flex; }
+html[data-first="1"] body { overflow:hidden; }
+.vz-in { margin:auto; width:100%; max-width:760px; padding:calc(28px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px)); position:relative; }
+.vz-x { position:absolute; right:max(12px,env(safe-area-inset-right,0px)); top:calc(12px + env(safe-area-inset-top,0px)); width:44px; height:44px; border-radius:12px; display:grid; place-items:center; color:#5D6075; background:rgba(20,22,48,.06); }
+html[data-first="1"] .vz-x { display:none; }
+.vz-in h2 { margin:0 0 6px; font-size:clamp(26px,7vw,34px); line-height:1.1; font-weight:600; letter-spacing:-.035em; text-wrap:balance; padding-right:48px; }
+.vz-in > p { margin:0 0 20px; color:#5D6075; font-size:15.5px; }
+.vz-grid { display:grid; grid-template-columns:1fr; gap:14px; }
+@media (min-width:640px) { .vz-grid { grid-template-columns:1fr 1fr; } }
+.vz-card { display:flex; flex-direction:column; gap:12px; padding:10px 10px 16px; border-radius:22px; text-align:left; background:#fff; box-shadow:inset 0 0 0 1px rgba(20,22,48,.1), 0 8px 24px -14px rgba(20,22,48,.2); transition:transform .18s, box-shadow .2s; }
+.vz-card:active { transform:scale(.985); }
+@media (hover:hover) { .vz-card:hover { box-shadow:inset 0 0 0 2px #14151F, 0 8px 24px -14px rgba(20,22,48,.2); } }
+.vz-card[aria-pressed="true"] { box-shadow:inset 0 0 0 2px #14151F; }
+.vz-txt { padding:0 8px; display:flex; flex-direction:column; gap:4px; }
+.vz-n { display:flex; align-items:center; gap:8px; font-size:22px; font-weight:600; letter-spacing:-.03em; }
+.vz-now { display:none; font:600 10px var(--mono); letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; color:#fff; background:#14151F; }
+.vz-card[aria-pressed="true"] .vz-now { display:inline-block; }
+html[data-first="1"] .vz-now { display:none !important; }
+.vz-card:focus-visible { outline:2px solid #14151F; outline-offset:3px; }
+.vz-d { font-size:15px; color:#2B2D3C; line-height:1.4; }
+.vz-tags { font:500 11.5px var(--mono); color:#8E91A3; letter-spacing:.01em; }
+.vz-pv { position:relative; display:block; height:118px; border-radius:14px; overflow:hidden; }
+/* prévia do Foco */
+.vz-pv-foco { background:#fff; box-shadow:inset 0 0 0 1px #D8D8D8; }
+.pf-orb { position:absolute; left:14px; top:14px; width:26px; height:26px; border-radius:50%; background:#000; display:flex; gap:2px; align-items:center; justify-content:center; }
+.pf-orb i { width:2px; border-radius:1px; background:#fff; } .pf-orb i:nth-child(1) { height:7px; } .pf-orb i:nth-child(2) { height:13px; } .pf-orb i:nth-child(3) { height:9px; }
+.pf-l { position:absolute; left:50px; height:7px; border-radius:4px; background:#E3E3E3; }
+.pf-box { position:absolute; left:12px; right:12px; bottom:12px; height:34px; border-radius:12px; box-shadow:inset 0 0 0 1.5px #000; }
+.pf-box b { position:absolute; right:5px; top:5px; width:24px; height:24px; border-radius:8px; background:#000; }
+.pf-box b::after { content:""; position:absolute; left:8px; top:7px; width:6px; height:6px; border-left:2px solid #fff; border-top:2px solid #fff; transform:rotate(45deg); }
+/* prévia da Aurora */
+.vz-pv-aurora { background:linear-gradient(135deg,#ECE8FF,#FFE9F3 60%,#FFF1DD); }
+.pa-blob { position:absolute; border-radius:50%; filter:blur(18px); opacity:.65; }
+.pa-b1 { width:90px; height:90px; left:-20px; top:-30px; background:#3D63FF; } .pa-b2 { width:80px; height:80px; right:-10px; top:-20px; background:#F0438C; } .pa-b3 { width:90px; height:60px; right:30px; bottom:-30px; background:#F2962F; }
+.pa-orb { position:absolute; left:14px; top:14px; width:26px; height:26px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#fff,rgba(255,255,255,0) 40%),conic-gradient(#3D63FF,#7B4DFF,#F0438C,#F2962F,#3D63FF); box-shadow:0 2px 10px rgba(123,77,255,.5); }
+.pa-wave { position:absolute; left:0; bottom:34px; width:200%; height:46px; animation:vzw 7s linear infinite; }
+@keyframes vzw { to { transform:translateX(-50%); } }
+.pa-box { position:absolute; left:12px; right:12px; bottom:12px; height:34px; border-radius:17px; background:#fff; box-shadow:0 0 0 1.5px rgba(123,77,255,.5), 0 6px 14px -6px rgba(123,77,255,.5); }
+.pa-box b { position:absolute; right:5px; top:5px; width:24px; height:24px; border-radius:50%; background:#14151F; }
+@media (prefers-reduced-motion: reduce) { .pa-wave { animation:none; } }
+html[data-mode="foco"] #visual .pa-wave { animation:vzw 7s linear infinite !important; }
+html[data-mode="foco"] #visual { animation:fade .2s both !important; }
 </style>
 </head>
 <body data-skin="glass">
@@ -637,6 +771,7 @@ body.think { --spd:2.6; }
 <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
 <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
 <symbol id="lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20Z" fill="currentColor"/></symbol>
 <symbol id="key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
 </svg>
 
@@ -677,6 +812,7 @@ body.think { --spd:2.6; }
   <button class="ditem press" id="dAv"><span class="eqi sm" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Transcrever áudio ou vídeo</span></button>
   <button class="ditem press" id="dWa"><svg class="i"><use href="#chat"/></svg><span>Organizar conversa do WhatsApp</span></button>
   <button class="ditem press" id="dPlans"><svg class="i"><use href="#tag"/></svg><span>Planos</span><span class="soon">Em breve</span></button>
+  <button class="ditem press" id="dVisual"><svg class="i"><use href="#contrast"/></svg><span>Trocar visual</span><span class="soon" id="dVisualNow">Aurora</span></button>
   <div class="dlab">Seu uso hoje</div>
   <section class="win glass" id="usage" aria-label="Uso de hoje">
     <div class="win-h"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Uso de hoje</span><span class="pill" id="usagePill">…</span></div>
@@ -707,6 +843,25 @@ body.think { --spd:2.6; }
   <button class="ditem press" id="dReo"><svg class="i"><use href="#spark"/></svg><span>Sobre o Reo 1.0</span></button>
   <p class="dfoot"><svg class="i sm"><use href="#lock"/></svg><span>Vídeos não saem do seu aparelho: só o áudio é enviado para transcrever.</span></p>
 </aside>
+<section id="visual" role="dialog" aria-modal="true" aria-labelledby="vzT">
+  <div class="vz-in">
+    <button class="vz-x press" id="vzX" aria-label="Fechar"><svg class="i"><use href="#x"/></svg></button>
+    <h2 id="vzT">Como você prefere usar o Transcriby?</h2>
+    <p>É só tocar em um. Você pode trocar quando quiser, pelo menu.</p>
+    <div class="vz-grid">
+      <button class="vz-card press" data-m="foco" aria-pressed="false">
+        <span class="vz-pv vz-pv-foco" aria-hidden="true"><span class="pf-orb"><i></i><i></i><i></i></span><span class="pf-l" style="top:17px;width:96px"></span><span class="pf-l" style="top:31px;width:62px"></span><span class="pf-box"><b></b></span></span>
+        <span class="vz-txt"><span class="vz-n">Foco <span class="vz-now">em uso</span></span><span class="vz-d">Preto e branco, sem enfeites. Só você e o texto.</span><span class="vz-tags">Sem animações · Mais leve</span></span>
+      </button>
+      <button class="vz-card press" data-m="aurora" aria-pressed="false">
+        <span class="vz-pv vz-pv-aurora" aria-hidden="true"><i class="pa-blob pa-b1"></i><i class="pa-blob pa-b2"></i><i class="pa-blob pa-b3"></i><span class="pa-orb"></span>
+          <svg class="pa-wave" viewBox="0 0 400 46" preserveAspectRatio="none"><path d="M0 23q25-26 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0" fill="none" stroke="#7B4DFF" stroke-width="2" opacity=".75"/><path d="M0 23q25 26 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0" fill="none" stroke="#F0438C" stroke-width="2" opacity=".65"/></svg>
+          <span class="pa-box"><b></b></span></span>
+        <span class="vz-txt"><span class="vz-n">Aurora <span class="vz-now">em uso</span></span><span class="vz-d">Cores, ondas de som e o Reo cheio de vida.</span><span class="vz-tags">Colorido · Animado</span></span>
+      </button>
+    </div>
+  </div>
+</section>
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"><svg class="i sm"><use href="#checkc"/></svg><span id="toastT"></span></div>
 
@@ -740,17 +895,20 @@ try { const s = localStorage.getItem('transcriby_idioma'); if (s !== null && LAN
 $('langV').textContent = langName(lang);
 
 /* ===================== fundo: ondas de som coloridas pulsando ===================== */
-let kick = 0;
+let kick = 0, startWaves = () => {};
+const isFoco = () => document.documentElement.dataset.mode === 'foco';
 (() => {
   const c = $('waves'), x = c.getContext('2d'), d = Math.min(2, window.devicePixelRatio || 1);
   let w = 0, h = 0, energy = .5, vis = 1;
   const rs = () => { w = c.clientWidth; h = c.clientHeight; c.width = w * d; c.height = h * d; x.setTransform(d, 0, 0, d, 0, 0); };
+  let running = true;
   rs(); addEventListener('resize', rs);
   const W = [{ c: '61,99,255', f: 1.6, s: .0011, o: 0 }, { c: '123,77,255', f: 2.1, s: .0015, o: 1.7 }, { c: '240,67,140', f: 1.3, s: .0009, o: 3.1 }, { c: '242,150,47', f: 2.6, s: .0019, o: 4.4 }, { c: '16,169,143', f: 1.9, s: .0013, o: 5.6 }];
   const att = xn => { const z = xn * 2; return Math.pow(2 / (2 + z * z * z * z), 2); };
   const path = (A, v, ph, y0) => { x.beginPath(); for (let px = 0; px <= w + 4; px += 4) { const xn = px / w * 2 - 1; const y = y0 + A * att(xn) * Math.sin(v.f * Math.PI * xn + ph) * Math.cos(ph * .35 + xn); px ? x.lineTo(px, y) : x.moveTo(px, y); } };
   const grad = (col, a) => { const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(.22, `rgba(${col},${a})`); g.addColorStop(.78, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`); return g; };
   function frame(t) {
+    if (isFoco()) { running = false; return; }   // visual Foco: sem ondas (e sem gastar bateria)
     x.clearRect(0, 0, w, h);
     const b = document.body.classList, target = b.contains('think') ? 1.05 : b.contains('typing') ? .85 : .62;
     energy += (target - energy) * .03; kick *= .93;
@@ -767,8 +925,9 @@ let kick = 0;
       path(A, v, ph, y0); x.lineTo(w, y0); x.lineTo(0, y0); x.closePath(); x.fillStyle = `rgba(${v.c},0.045)`; x.fill();
       path(A, v, ph, y0); x.lineWidth = 8; x.strokeStyle = grad(v.c, .1); x.stroke(); x.lineWidth = 1.7; x.strokeStyle = grad(v.c, .6); x.stroke();
     }
-    if (!reduce) requestAnimationFrame(frame);
+    if (!reduce) requestAnimationFrame(frame); else running = false;
   }
+  startWaves = () => { if (running) return; running = true; rs(); requestAnimationFrame(frame); };
   requestAnimationFrame(frame);
 })();
 
@@ -1651,7 +1810,7 @@ function openConv(my) {
 
 /* ---- rostos do Reo: de vez em quando as ondas viram um rosto; também reage ao que acontece (lendo = curioso, pronto = curtindo, erro = triste) ---- */
 function setFace(f, ms = 3300) {
-  if (reduce) return;
+  if (reduce || isFoco()) return;
   clearTimeout(faceT); document.body.dataset.face = f; lastFace = f;
   if (ms) faceT = setTimeout(clearFace, ms);
 }
@@ -1667,7 +1826,7 @@ setTimeout(() => { if (!busy && !document.body.dataset.face) setFace('happy'); s
 
 /* ---- a logo reage: toque faz ondas, reflexo segue o dedo/mouse ---- */
 function ripple(o) {
-  if (!o || reduce) return;
+  if (!o || reduce || isFoco()) return;
   for (let k = 0; k < 2; k++) { const r = document.createElement('i'); r.className = 'r-rip'; r.style.animationDelay = (k * .22) + 's'; o.append(r); setTimeout(() => r.remove(), 1800); }
   o.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.16)' }, { transform: 'scale(1)' }], { duration: 520, easing: 'cubic-bezier(.3,1.35,.5,1)' });
 }
@@ -1681,6 +1840,30 @@ function glide() {
   if (Math.abs(gx - cx) + Math.abs(gy - cy) > .002) requestAnimationFrame(glide); else moving = false;
 }
 if (!reduce) addEventListener('pointermove', e => { gx = e.clientX / innerWidth * 2 - 1; gy = e.clientY / innerHeight * 2 - 1; if (!moving) { moving = true; requestAnimationFrame(glide); } }, { passive: true });
+
+/* ===================== visual: Foco (preto e branco) ou Aurora (colorido) ===================== */
+const VISUAL_KEY = 'transcriby_visual', MODE_NAME = { foco: 'Foco', aurora: 'Aurora' };
+const root = document.documentElement, vz = $('visual');
+function applyMode(m) {
+  root.dataset.mode = m;
+  const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.setAttribute('content', m === 'foco' ? '#FFFFFF' : '#F6F6FA');
+  $('dVisualNow').textContent = MODE_NAME[m];
+  vz.querySelectorAll('.vz-card').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  if (m === 'foco') clearFace(); else startWaves();
+}
+function openVisual() { applyMode(root.dataset.mode); vz.classList.add('open'); }
+function closeVisual() { if (root.dataset.first) return; vz.classList.remove('open'); }
+vz.querySelectorAll('.vz-card').forEach(b => b.onclick = () => {
+  const m = b.dataset.m, first = !!root.dataset.first;
+  try { localStorage.setItem(VISUAL_KEY, m); } catch (_) {}
+  delete root.dataset.first; applyMode(m); vz.classList.remove('open');
+  if (first && $('hello')) hello();
+  toast(first ? 'Pronto! Troque o visual pelo menu.' : `Visual ${MODE_NAME[m]} ligado`);
+});
+$('vzX').onclick = closeVisual;
+$('dVisual').onclick = () => { closeDrawer(); openVisual(); };
+addEventListener('keydown', e => { if (e.key === 'Escape') closeVisual(); });
+applyMode(root.dataset.mode);
 
 hello();
 grow();
